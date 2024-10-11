@@ -14,10 +14,13 @@ const client = new CloudantV1({
 
 export const ibmRouter = createTRPCRouter({
   getRecordings: publicProcedure.query(async () => {
-    const recordings = await client.postFind({
+    const recordings = await client.postAllDocs({
       db: "jamaisvu-recordings",
-      selector: {},
+      includeDocs: true,
     });
-    return recordings.result.docs;
+
+    return recordings.result.rows
+      .map((row) => row.doc)
+      .filter((doc) => doc !== undefined);
   }),
 });
