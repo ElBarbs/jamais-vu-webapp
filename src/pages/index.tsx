@@ -1,10 +1,9 @@
 import Head from "next/head";
-import Link from "next/link";
 
 import { api } from "~/utils/api";
 
 export default function Home() {
-  const movies = api.mongodb.getMovies.useQuery();
+  const recs = api.ibm.getRecordings.useQuery();
 
   return (
     <>
@@ -16,12 +15,12 @@ export default function Home() {
       <main className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-[#2e026d] to-[#15162c]">
         <div className="container flex flex-col items-center justify-center gap-12 px-4 py-16">
           <ul className="text-2xl text-white">
-            {movies.data ? (
-              movies.data.map((movie) => (
-                <li key={movie._id.toString()}>{movie.title}</li>
+            {recs.data ? (
+              recs.data.map((rec) => (
+                <li key={rec._id?.toString()}>{rec.description}</li>
               ))
             ) : (
-              <li>Loading movies...</li>
+              <li>Loading recordings...</li>
             )}
           </ul>
         </div>

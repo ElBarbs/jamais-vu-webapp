@@ -8,7 +8,8 @@ export const env = createEnv({
    */
   server: {
     NODE_ENV: z.enum(["development", "test", "production"]),
-    MONGODB_URI: z.string().min(1),
+    CLOUDANT_URL: z.string().min(1),
+    CLOUDANT_APIKEY: z.string().min(1),
   },
 
   /**
@@ -26,7 +27,8 @@ export const env = createEnv({
    */
   runtimeEnv: {
     NODE_ENV: process.env.NODE_ENV,
-    MONGODB_URI: process.env.MONGODB_URI,
+    CLOUDANT_URL: process.env.CLOUDANT_URL,
+    CLOUDANT_APIKEY: process.env.CLOUDANT_APIKEY,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially
