@@ -10,6 +10,9 @@ export const env = createEnv({
     NODE_ENV: z.enum(["development", "test", "production"]),
     CLOUDANT_URL: z.string().min(1),
     CLOUDANT_APIKEY: z.string().min(1),
+    COS_ENDPOINT: z.string().min(1),
+    COS_APIKEY: z.string().min(1),
+    COS_RESOURCE_INSTANCE_ID: z.string().min(1),
   },
 
   /**
@@ -29,6 +32,9 @@ export const env = createEnv({
     NODE_ENV: process.env.NODE_ENV,
     CLOUDANT_URL: process.env.CLOUDANT_URL,
     CLOUDANT_APIKEY: process.env.CLOUDANT_APIKEY,
+    COS_ENDPOINT: process.env.COS_ENDPOINT,
+    COS_APIKEY: process.env.COS_APIKEY,
+    COS_RESOURCE_INSTANCE_ID: process.env.COS_RESOURCE_INSTANCE_ID,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially

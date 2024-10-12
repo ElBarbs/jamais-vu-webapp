@@ -1,6 +1,7 @@
 import Head from "next/head";
 
 import { api } from "~/utils/api";
+import Recorder from "~/components/Recorder";
 
 export default function Home() {
   const recs = api.ibm.getRecordings.useQuery();
@@ -23,6 +24,7 @@ export default function Home() {
               <li>Loading recordings...</li>
             )}
           </ul>
+          <Recorder />
         </div>
       </main>
     </>
