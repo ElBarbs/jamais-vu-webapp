@@ -35,12 +35,12 @@ export const ibmRouter = createTRPCRouter({
       .filter((doc) => doc !== undefined);
   }),
   uploadRecording: publicProcedure
-    .input(z.array(z.instanceof(Blob)))
+    .input(z.object({ base64: z.string() }))
     .mutation(async ({ input }) => {
       const params = {
         Bucket: "recordings",
-        Key: "audio.wav",
-        Body: new Uint8Array(await new Blob(input).arrayBuffer()),
+        Key: `recording-${Date.now()}.wav`,
+        Body: Buffer.from(input.base64, "base64"),
       };
 
       const response = await cos.putObject(params).promise();

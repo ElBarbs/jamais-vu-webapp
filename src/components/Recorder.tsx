@@ -9,9 +9,13 @@ export default function AudioRecorder() {
   const [errorMessage, setErrorMessage] = useState<string>("");
   const mediaRecorderRef = useRef<MediaRecorder | null>(null); // Will be assigned dynamically
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const maxDuration = 30 * 1000; // 30 seconds in milliseconds
-  const uploadRecording = api.ibm.uploadRecording.useMutation();
-  let chunks: Blob[] = [];
+  const maxDuration = 15 * 1000; // 15 seconds in milliseconds
+  const uploadRecording = api.ibm.uploadRecording.useMutation({
+    onSuccess: () => {
+      setAudioBlob(null);
+      setAudioUrl(null);
+    },
+  });
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -24,9 +28,9 @@ export default function AudioRecorder() {
     }
   }, []);
 
-  // Dynamically load the MediaRecorder from extendable-media-recorder on the client side
+  // Dynamically load the MediaRecorder from extendable-media-recorder on the client side.
   const startRecording = async () => {
-    if (typeof window === "undefined") return; // Ensure this runs on the client only
+    if (typeof window === "undefined") return; // Ensure this runs on the client only.
 
     const { MediaRecorder, register } = await import(
       "extendable-media-recorder"
@@ -49,7 +53,7 @@ export default function AudioRecorder() {
 
       mediaRecorderRef.current = recorder as MediaRecorder;
 
-      chunks = [];
+      let chunks: Blob[] = [];
 
       recorder.ondataavailable = (e: BlobEvent) => {
         chunks.push(e.data);
@@ -67,7 +71,7 @@ export default function AudioRecorder() {
       recorder.start();
       setIsRecording(true);
 
-      // Automatically stop after 30 seconds
+      // Automatically stop after 15 seconds.
       setTimeout(() => {
         if (recorder.state !== "inactive") {
           recorder.stop();
@@ -90,11 +94,18 @@ export default function AudioRecorder() {
     setIsRecording(false);
   };
 
-  // Handle uploading the audio to IBM Cloud
+  // Handle uploading the audio to IBM Cloud.
   const handleUpload = async () => {
     if (!audioBlob) return;
 
-    uploadRecording.mutate(chunks);
+    const arrayBuffer = await audioBlob.arrayBuffer();
+    const base64 = Buffer.from(arrayBuffer).toString("base64");
+
+    try {
+      uploadRecording.mutate({ base64: base64 });
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   return (

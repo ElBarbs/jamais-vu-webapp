@@ -18,7 +18,7 @@ export default function Home() {
           <ul className="text-2xl text-white">
             {recs.data ? (
               recs.data.map((rec) => (
-                <li key={rec._id?.toString()}>{rec.description}</li>
+                <li key={rec._id?.toString()}>{rec.filename}</li>
               ))
             ) : (
               <li>Loading recordings...</li>
