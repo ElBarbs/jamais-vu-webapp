@@ -1,59 +1,57 @@
 import { useEffect, useState, useRef } from "react";
-
 import { api } from "~/utils/api";
 
 export default function AudioRecorder() {
-  const [isRecording, setIsRecording] = useState<boolean>(false);
+  const maxDuration = 15; // 15 seconds.
+  const [timeLeft, setTimeLeft] = useState(maxDuration);
+  const [isRecording, setIsRecording] = useState(false);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string>("");
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null); // Will be assigned dynamically
+
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const maxDuration = 15 * 1000; // 15 seconds in milliseconds
-  const uploadRecording = api.ibm.uploadRecording.useMutation({
-    onSuccess: () => {
-      setAudioBlob(null);
-      setAudioUrl(null);
-    },
-  });
+  const countdownIntervalRef = useRef<number | undefined>(undefined);
 
   useEffect(() => {
-    if (typeof window === "undefined") {
-      return; // Ensure that this code runs on the client only
-    }
-
-    // Check if getUserMedia is supported
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    if (!navigator.mediaDevices?.getUserMedia) {
       setErrorMessage("Browser does not support audio recording.");
     }
   }, []);
 
-  // Dynamically load the MediaRecorder from extendable-media-recorder on the client side.
-  const startRecording = async () => {
-    if (typeof window === "undefined") return; // Ensure this runs on the client only.
+  const resetRecording = () => {
+    setAudioBlob(null);
+    setAudioUrl(null);
+    setTimeLeft(maxDuration);
+    clearInterval(countdownIntervalRef.current);
+  };
 
+  const uploadRecording = api.ibm.uploadRecording.useMutation({
+    onSuccess: () => {
+      resetRecording();
+    },
+  });
+
+  const startRecording = async () => {
+    const { connect } = await import("extendable-media-recorder-wav-encoder");
     const { MediaRecorder, register } = await import(
       "extendable-media-recorder"
     );
-    const { connect } = await import("extendable-media-recorder-wav-encoder");
 
     try {
       if (!mediaRecorderRef.current) {
-        // Register the WAV encoder
         await register(await connect());
       }
 
       const stream: MediaStream = await navigator.mediaDevices.getUserMedia({
         audio: true,
       });
+      const recorder = new MediaRecorder(stream, { mimeType: "audio/wav" });
 
-      const recorder = new MediaRecorder(stream, {
-        mimeType: "audio/wav",
-      });
-
+      resetRecording();
       mediaRecorderRef.current = recorder as MediaRecorder;
 
-      let chunks: Blob[] = [];
+      const chunks: Blob[] = [];
 
       recorder.ondataavailable = (e: BlobEvent) => {
         chunks.push(e.data);
@@ -61,8 +59,6 @@ export default function AudioRecorder() {
 
       recorder.onstop = () => {
         const blob = new Blob(chunks, { type: "audio/wav" });
-        console.log("Blob created:", blob);
-        console.log("Blob type:", blob instanceof Blob);
         setAudioBlob(blob);
         setAudioUrl(URL.createObjectURL(blob));
         setIsRecording(false);
@@ -71,19 +67,30 @@ export default function AudioRecorder() {
       recorder.start();
       setIsRecording(true);
 
-      // Automatically stop after 15 seconds.
+      // Countdown timer.
+      countdownIntervalRef.current = window.setInterval(() => {
+        setTimeLeft((prev) => {
+          if (prev <= 1) {
+            clearInterval(countdownIntervalRef.current);
+            recorder.stop();
+            return maxDuration; // Reset timer after stopping.
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      // Automatically stop the recording after 15 seconds.
       setTimeout(() => {
         if (recorder.state !== "inactive") {
           recorder.stop();
         }
-      }, maxDuration);
+      }, maxDuration * 1000);
     } catch (err) {
-      setErrorMessage("Error accessing microphone");
+      setErrorMessage("Error accessing microphone.");
       console.error(err);
     }
   };
 
-  // Stop recording manually
   const stopRecording = () => {
     if (
       mediaRecorderRef.current &&
@@ -94,7 +101,6 @@ export default function AudioRecorder() {
     setIsRecording(false);
   };
 
-  // Handle uploading the audio to IBM Cloud.
   const handleUpload = async () => {
     if (!audioBlob) return;
 
@@ -102,32 +108,38 @@ export default function AudioRecorder() {
     const base64 = Buffer.from(arrayBuffer).toString("base64");
 
     try {
-      uploadRecording.mutate({ base64: base64 });
+      uploadRecording.mutate({ base64 });
     } catch (err) {
       console.error(err);
     }
   };
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex min-h-60 flex-col items-center gap-8">
       {errorMessage && <p>{errorMessage}</p>}
-
-      {isRecording ? (
-        <button
-          onClick={stopRecording}
-          className="rounded-lg bg-red-500 px-4 py-2 text-white shadow-md transition-colors duration-300 hover:bg-red-600"
-        >
-          Stop Recording
-        </button>
-      ) : (
-        <button
-          onClick={startRecording}
-          className="rounded-lg bg-green-500 px-4 py-2 text-white shadow-md transition-colors duration-300 hover:bg-green-600"
-        >
-          Start Recording
-        </button>
-      )}
-
+      <div className="flex min-h-20 flex-col items-center gap-4">
+        {isRecording ? (
+          <>
+            <button
+              onClick={stopRecording}
+              className="rounded-lg bg-red-500 px-4 py-2 text-white shadow-md transition-colors duration-300 hover:bg-red-600"
+            >
+              Stop Recording
+            </button>
+            <div className="flex flex-col items-center text-gray-800">
+              <p className="text-3xl">{timeLeft}</p>
+              <p>seconds left</p>
+            </div>
+          </>
+        ) : (
+          <button
+            onClick={startRecording}
+            className="rounded-lg bg-green-500 px-4 py-2 text-white shadow-md transition-colors duration-300 hover:bg-green-600"
+          >
+            Start Recording
+          </button>
+        )}
+      </div>
       {audioUrl && (
         <div className="flex flex-col items-center gap-2">
           <audio ref={audioRef} controls src={audioUrl}></audio>
