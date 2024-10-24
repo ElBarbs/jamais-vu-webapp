@@ -2,10 +2,12 @@ import { useEffect, useState, useRef } from "react";
 
 interface AudioRecorderProps {
   onRecordingStateChange: (audioBlob: Blob | null) => void;
+  disabled?: boolean;
 }
 
 export default function Recorder({
   onRecordingStateChange,
+  disabled,
 }: AudioRecorderProps) {
   const maxDuration = 15; // 15 seconds.
   const [timeLeft, setTimeLeft] = useState(maxDuration);
@@ -114,6 +116,7 @@ export default function Recorder({
         ) : (
           <button
             onClick={startRecording}
+            disabled={disabled}
             className="rounded-lg bg-green-500 px-4 py-2 text-white shadow-md transition-colors duration-300 hover:bg-green-600"
           >
             Start Recording

@@ -2,6 +2,7 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { CloudantV1, IamAuthenticator } from "@ibm-cloud/cloudant";
 import { S3 } from "ibm-cos-sdk";
+import { fileTypeFromBuffer } from "file-type";
 import { nanoid } from "nanoid";
 
 import { env } from "~/env";
@@ -90,11 +91,21 @@ export const ibmRouter = createTRPCRouter({
   uploadRecording: publicProcedure
     .input(z.object({ base64: z.string() }))
     .mutation(async ({ input }) => {
+      const buffer = Buffer.from(input.base64, "base64");
+      const fileType = await fileTypeFromBuffer(buffer);
+
+      if (!fileType?.mime.startsWith("audio")) {
+        throw new TRPCError({
+          code: "UNSUPPORTED_MEDIA_TYPE",
+          message: "Only audio files are supported.",
+        });
+      }
+
       const id = nanoid();
       const params = {
         Bucket: "recordings",
         Key: `${id}.wav`,
-        Body: Buffer.from(input.base64, "base64"),
+        Body: buffer,
       };
 
       await cos.putObject(params).promise();

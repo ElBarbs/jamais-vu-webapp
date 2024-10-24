@@ -19,17 +19,12 @@ export default function Home() {
 
   const uploadRecording = api.ibm.uploadRecording.useMutation({
     onSuccess: () => {
-      console.log("Upload successful.");
       setAudioBlob(null);
       setAudioURL(null);
     },
   });
 
-  const uploadRecordingMetadata = api.ibm.uploadRecordingMetadata.useMutation({
-    onSuccess: () => {
-      console.log("Metadata uploaded.");
-    },
-  });
+  const uploadRecordingMetadata = api.ibm.uploadRecordingMetadata.useMutation();
 
   const handleUpload = async () => {
     if (!audioBlob) return;
@@ -83,13 +78,17 @@ export default function Home() {
             Jamais Vu
           </h1>
           <div className="flex min-h-72 flex-col items-center justify-start gap-8">
-            <Recorder onRecordingStateChange={handleRecordingStateChange} />
+            <Recorder
+              onRecordingStateChange={handleRecordingStateChange}
+              disabled={isUploading}
+            />
             <div className="flex flex-col items-center gap-2">
               {audioURL && <audio controls src={audioURL}></audio>}
               {audioBlob && (
                 <button
                   onClick={handleUpload}
                   className="mt-4 rounded-lg bg-blue-500 px-4 py-2 text-white shadow-md transition-colors duration-300 hover:bg-blue-600"
+                  disabled={isUploading}
                 >
                   {isUploading ? "Uploading..." : "Upload Audio"}
                 </button>
