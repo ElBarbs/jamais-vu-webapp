@@ -1,16 +1,18 @@
 import { useEffect, useState, useRef } from "react";
-import { api } from "~/utils/api";
 
-export default function AudioRecorder() {
+interface AudioRecorderProps {
+  onRecordingStateChange: (audioBlob: Blob | null) => void;
+}
+
+export default function Recorder({
+  onRecordingStateChange,
+}: AudioRecorderProps) {
   const maxDuration = 15; // 15 seconds.
   const [timeLeft, setTimeLeft] = useState(maxDuration);
   const [isRecording, setIsRecording] = useState(false);
-  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string>("");
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
   const countdownIntervalRef = useRef<number | undefined>(undefined);
 
   useEffect(() => {
@@ -20,17 +22,10 @@ export default function AudioRecorder() {
   }, []);
 
   const resetRecording = () => {
-    setAudioBlob(null);
-    setAudioUrl(null);
+    onRecordingStateChange(null);
     setTimeLeft(maxDuration);
     clearInterval(countdownIntervalRef.current);
   };
-
-  const uploadRecording = api.ibm.uploadRecording.useMutation({
-    onSuccess: () => {
-      resetRecording();
-    },
-  });
 
   const startRecording = async () => {
     const { connect } = await import("extendable-media-recorder-wav-encoder");
@@ -59,8 +54,7 @@ export default function AudioRecorder() {
 
       recorder.onstop = () => {
         const blob = new Blob(chunks, { type: "audio/wav" });
-        setAudioBlob(blob);
-        setAudioUrl(URL.createObjectURL(blob));
+        onRecordingStateChange(blob);
         setIsRecording(false);
       };
 
@@ -101,23 +95,9 @@ export default function AudioRecorder() {
     setIsRecording(false);
   };
 
-  const handleUpload = async () => {
-    if (!audioBlob) return;
-
-    const arrayBuffer = await audioBlob.arrayBuffer();
-    const base64 = Buffer.from(arrayBuffer).toString("base64");
-
-    try {
-      uploadRecording.mutate({ base64 });
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
   return (
-    <div className="flex min-h-60 flex-col items-center gap-8">
-      {errorMessage && <p>{errorMessage}</p>}
-      <div className="flex min-h-20 flex-col items-center gap-4">
+    <div className="flex flex-col items-center gap-8">
+      <div className="flex flex-col items-center gap-4">
         {isRecording ? (
           <>
             <button
@@ -140,17 +120,7 @@ export default function AudioRecorder() {
           </button>
         )}
       </div>
-      {audioUrl && (
-        <div className="flex flex-col items-center gap-2">
-          <audio ref={audioRef} controls src={audioUrl}></audio>
-          <button
-            onClick={handleUpload}
-            className="mt-4 rounded-lg bg-blue-500 px-4 py-2 text-white shadow-md transition-colors duration-300 hover:bg-blue-600"
-          >
-            Upload Audio
-          </button>
-        </div>
-      )}
+      {errorMessage && <p>{errorMessage}</p>}
     </div>
   );
 }
