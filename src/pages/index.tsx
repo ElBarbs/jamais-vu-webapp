@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Head from "next/head";
 import { RingLoader } from "react-spinners";
 
@@ -8,6 +8,7 @@ import { api } from "~/utils/api";
 export default function Home() {
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [audioURL, setAudioURL] = useState<string | null>(null);
+  const [location, setLocation] = useState<GeolocationPosition | null>(null);
   const [isUploading, setUploadState] = useState(false);
 
   const handleRecordingStateChange = (blob: Blob | null) => {
@@ -24,6 +25,12 @@ export default function Home() {
     },
   });
 
+  const uploadRecordingMetadata = api.ibm.uploadRecordingMetadata.useMutation({
+    onSuccess: () => {
+      console.log("Metadata uploaded.");
+    },
+  });
+
   const handleUpload = async () => {
     if (!audioBlob) return;
 
@@ -34,14 +41,34 @@ export default function Home() {
 
     uploadRecording
       .mutateAsync({ base64 })
-      .then(() => {
+      .then((id: string) => {
         setUploadState(false);
+
+        uploadRecordingMetadata.mutate({
+          id: id,
+          location: location ? location : undefined,
+        });
       })
       .catch((err) => {
         console.error(err);
         setUploadState(false);
       });
   };
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && "geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setLocation(position);
+        },
+        (error) => {
+          console.error(error.message);
+        },
+      );
+    } else {
+      console.error("Geolocation not supported by this browser.");
+    }
+  }, []);
 
   return (
     <>

@@ -1,9 +1,17 @@
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 import { CloudantV1, IamAuthenticator } from "@ibm-cloud/cloudant";
 import { S3 } from "ibm-cos-sdk";
+import { nanoid } from "nanoid";
 
 import { env } from "~/env";
 import { createTRPCRouter, publicProcedure } from "../trpc";
+
+type RecordingDocument = {
+  filename: string;
+  location: string;
+  timestamp: string;
+};
 
 const authenticator = new IamAuthenticator({
   apikey: env.CLOUDANT_APIKEY,
@@ -24,27 +32,73 @@ const cosConfig = {
 const cos = new S3(cosConfig);
 
 export const ibmRouter = createTRPCRouter({
-  getRecordings: publicProcedure.query(async () => {
-    const recordings = await cloudant.postAllDocs({
+  getRandomRecording: publicProcedure.query(async () => {
+    const documents = await cloudant.postAllDocs({
       db: "jamaisvu-recordings",
       includeDocs: true,
     });
 
-    return recordings.result.rows
-      .map((row) => row.doc)
-      .filter((doc) => doc !== undefined);
+    const randomIndex = Math.floor(Math.random() * documents.result.totalRows);
+    const randomDocument = documents.result.rows[randomIndex]?.doc as
+      | RecordingDocument
+      | undefined;
+
+    if (randomDocument) {
+      const audioFile = await cos
+        .getObject({
+          Bucket: "recordings",
+          Key: `${randomDocument.filename}`,
+        })
+        .promise();
+
+      if (audioFile.Body) {
+        return {
+          audio: audioFile.Body,
+          location: randomDocument.location,
+          timestamp: randomDocument.timestamp,
+        };
+      } else {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Failed to retrieve audio file.",
+        });
+      }
+    }
   }),
+  uploadRecordingMetadata: publicProcedure
+    .input(
+      z.object({
+        id: z.string(),
+        location: z.optional(z.custom<GeolocationPosition>()),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      const response = await cloudant.postDocument({
+        db: "jamaisvu-recordings",
+        document: {
+          filename: `${input.id}.wav`,
+          location: {
+            latitude: input.location?.coords.latitude,
+            longitude: input.location?.coords.longitude,
+          },
+          timestamp: Date.now(),
+        },
+      });
+
+      return response;
+    }),
   uploadRecording: publicProcedure
     .input(z.object({ base64: z.string() }))
     .mutation(async ({ input }) => {
+      const id = nanoid();
       const params = {
         Bucket: "recordings",
-        Key: `recording-${Date.now()}.wav`,
+        Key: `${id}.wav`,
         Body: Buffer.from(input.base64, "base64"),
       };
 
-      const response = await cos.putObject(params).promise();
+      await cos.putObject(params).promise();
 
-      return response;
+      return id;
     }),
 });
