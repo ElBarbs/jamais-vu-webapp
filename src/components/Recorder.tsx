@@ -1,5 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 
+import { Button } from "~/components/ui/button";
+
 interface AudioRecorderProps {
   onRecordingStateChange: (audioBlob: Blob | null) => void;
   disabled?: boolean;
@@ -102,25 +104,25 @@ export default function Recorder({
       <div className="flex flex-col items-center gap-4">
         {isRecording ? (
           <>
-            <button
+            <Button
               onClick={stopRecording}
-              className="rounded-lg bg-red-500 px-4 py-2 text-white shadow-md transition-colors duration-300 hover:bg-red-600"
+              className="bg-red-500 text-white duration-300 hover:bg-red-500/90"
             >
               Stop Recording
-            </button>
-            <div className="flex flex-col items-center text-gray-800">
+            </Button>
+            <div className="flex flex-col items-center text-[#222]">
               <p className="text-3xl">{timeLeft}</p>
               <p>seconds left</p>
             </div>
           </>
         ) : (
-          <button
+          <Button
             onClick={startRecording}
             disabled={disabled}
-            className="rounded-lg bg-green-500 px-4 py-2 text-white shadow-md transition-colors duration-300 hover:bg-green-600"
+            className="bg-green-500 text-white duration-300 hover:bg-green-500/90"
           >
             Start Recording
-          </button>
+          </Button>
         )}
       </div>
       {errorMessage && <p>{errorMessage}</p>}

@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import Head from "next/head";
 import { RingLoader } from "react-spinners";
 
-import Recorder from "~/components/Recorder";
+import { Button } from "~/components/ui/button";
+import Recorder from "~/components/recorder";
 import { api } from "~/utils/api";
 
 export default function Home() {
@@ -72,26 +73,24 @@ export default function Home() {
         <meta name="description" content="Jamais Vu" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
-      <main className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-[#e3dac9] to-[#d6cfc4] font-mono">
+      <main className="flex min-h-svh flex-col items-center justify-center bg-[#f8f8f8]">
         <div className="container flex flex-col items-center justify-center gap-8 px-4 py-16">
-          <h1 className="text-center text-4xl font-light text-gray-800">
-            Jamais Vu
-          </h1>
+          <h1 className="text-center text-5xl text-[#222]">Jamais Vu</h1>
           <div className="flex min-h-72 flex-col items-center justify-start gap-8">
             <Recorder
               onRecordingStateChange={handleRecordingStateChange}
               disabled={isUploading}
             />
-            <div className="flex flex-col items-center gap-2">
+            <div className="flex flex-col items-center gap-4">
               {audioURL && <audio controls src={audioURL}></audio>}
               {audioBlob && (
-                <button
+                <Button
                   onClick={handleUpload}
-                  className="mt-4 rounded-lg bg-blue-500 px-4 py-2 text-white shadow-md transition-colors duration-300 hover:bg-blue-600"
+                  className="bg-blue-500 text-white duration-300 hover:bg-blue-500/90"
                   disabled={isUploading}
                 >
                   {isUploading ? "Uploading..." : "Upload Audio"}
-                </button>
+                </Button>
               )}
             </div>
             {isUploading && <RingLoader />}
