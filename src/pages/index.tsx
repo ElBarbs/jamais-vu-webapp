@@ -5,6 +5,7 @@ import { RingLoader } from "react-spinners";
 import { Button } from "~/components/ui/button";
 import Recorder from "~/components/recorder";
 import { api } from "~/utils/api";
+import Menu from "~/components/menu";
 
 export default function Home() {
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
@@ -73,9 +74,12 @@ export default function Home() {
         <meta name="description" content="Jamais Vu" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
-      <main className="flex min-h-svh flex-col items-center justify-center bg-[#f8f8f8]">
-        <div className="container flex flex-col items-center justify-center gap-8 px-4 py-16">
-          <h1 className="text-center text-5xl text-[#222]">Jamais Vu</h1>
+      <header className="flex min-h-24 flex-row items-center justify-center">
+        <Menu />
+      </header>
+      <main className="m-8 flex min-h-[60svh] flex-col items-center justify-center">
+        <div className="container flex flex-col items-center justify-center gap-8">
+          <p className="text-center text-4xl">Jamais Vu</p>
           <div className="flex min-h-72 flex-col items-center justify-start gap-8">
             <Recorder
               onRecordingStateChange={handleRecordingStateChange}

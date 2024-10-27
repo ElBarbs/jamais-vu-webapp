@@ -47,6 +47,8 @@ export default function Recorder({
       });
       const recorder = new MediaRecorder(stream, { mimeType: "audio/wav" });
 
+      console.log(stream.getAudioTracks()[0]?.getSettings());
+
       resetRecording();
       mediaRecorderRef.current = recorder as MediaRecorder;
 
@@ -110,7 +112,7 @@ export default function Recorder({
             >
               Stop Recording
             </Button>
-            <div className="flex flex-col items-center text-[#222]">
+            <div className="flex flex-col items-center">
               <p className="text-3xl">{timeLeft}</p>
               <p>seconds left</p>
             </div>
