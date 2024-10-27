@@ -45,18 +45,17 @@ export const ibmRouter = createTRPCRouter({
       | undefined;
 
     if (randomDocument) {
-      const audioFile = await cos
-        .getObject({
-          Bucket: "recordings",
-          Key: `${randomDocument.filename}`,
-        })
-        .promise();
+      const presignedURL = await cos.getSignedUrlPromise("getObject", {
+        Bucket: "recordings",
+        Key: `${randomDocument.filename}`,
+        Expires: 30,
+      });
 
-      if (audioFile.Body) {
+      if (presignedURL) {
         return {
-          audio: audioFile.Body,
-          location: randomDocument.location,
-          timestamp: randomDocument.timestamp,
+          audioURL: presignedURL,
+          /*location: randomDocument.location,
+          timestamp: randomDocument.timestamp,*/
         };
       } else {
         throw new TRPCError({
