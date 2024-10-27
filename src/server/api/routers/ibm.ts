@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { CloudantV1, IamAuthenticator } from "@ibm-cloud/cloudant";
-import { S3 } from "ibm-cos-sdk";
+import { Credentials, S3 } from "ibm-cos-sdk";
 import { fileTypeFromBuffer } from "file-type";
 import { nanoid } from "nanoid";
 
@@ -27,7 +27,8 @@ const cosConfig = {
   endpoint: env.COS_ENDPOINT,
   apiKeyId: env.COS_APIKEY,
   serviceInstanceId: env.COS_RESOURCE_INSTANCE_ID,
-  signatureVersion: "iam",
+  credentials: new Credentials(env.COS_HMAC_KEY, env.COS_HMAC_SECRET),
+  signatureVersion: "v4",
 };
 
 const cos = new S3(cosConfig);
@@ -52,11 +53,7 @@ export const ibmRouter = createTRPCRouter({
       });
 
       if (presignedURL) {
-        return {
-          audioURL: presignedURL,
-          /*location: randomDocument.location,
-          timestamp: randomDocument.timestamp,*/
-        };
+        return presignedURL;
       } else {
         throw new TRPCError({
           code: "NOT_FOUND",

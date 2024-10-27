@@ -13,6 +13,8 @@ export const env = createEnv({
     COS_ENDPOINT: z.string().min(1),
     COS_APIKEY: z.string().min(1),
     COS_RESOURCE_INSTANCE_ID: z.string().min(1),
+    COS_HMAC_KEY: z.string().min(1),
+    COS_HMAC_SECRET: z.string().min(1),
   },
 
   /**
@@ -35,6 +37,8 @@ export const env = createEnv({
     COS_ENDPOINT: process.env.COS_ENDPOINT,
     COS_APIKEY: process.env.COS_APIKEY,
     COS_RESOURCE_INSTANCE_ID: process.env.COS_RESOURCE_INSTANCE_ID,
+    COS_HMAC_KEY: process.env.COS_HMAC_KEY,
+    COS_HMAC_SECRET: process.env.COS_HMAC_SECRET,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially
