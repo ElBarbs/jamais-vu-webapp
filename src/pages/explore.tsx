@@ -1,8 +1,14 @@
+import Head from "next/head";
 import Menu from "~/components/menu";
 
 export default function Explore() {
   return (
     <>
+      <Head>
+        <title>Jamais Vu - Explore</title>
+        <meta name="description" content="Explore" />
+        <link rel="icon" href="/favicon.ico" />
+      </Head>
       <header className="flex min-h-24 flex-row items-center justify-center">
         <Menu />
       </header>
