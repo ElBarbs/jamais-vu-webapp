@@ -1,23 +1,75 @@
+import {
+  ResetIcon,
+  StopIcon,
+  UpdateIcon,
+  UploadIcon,
+} from "@radix-ui/react-icons";
 import { useEffect, useState, useRef } from "react";
 
-import { Button } from "~/components/ui/button";
+import CustomAudioPlayer from "~/components/audio-player";
+import { api } from "~/utils/api";
 
-interface AudioRecorderProps {
-  onRecordingStateChange: (audioBlob: Blob | null) => void;
-  disabled?: boolean;
-}
-
-export default function Recorder({
-  onRecordingStateChange,
-  disabled,
-}: AudioRecorderProps) {
+export default function Recorder() {
   const maxDuration = 15; // 15 seconds.
   const [timeLeft, setTimeLeft] = useState(maxDuration);
   const [isRecording, setIsRecording] = useState(false);
+  const [isUploading, setUploadState] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string>("");
+
+  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
+  const [audioURL, setAudioURL] = useState<string | null>(null);
+  const [location, setLocation] = useState<GeolocationPosition | null>(null);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const countdownIntervalRef = useRef<number | undefined>(undefined);
+
+  const uploadRecording = api.ibm.uploadRecording.useMutation({
+    onSuccess: () => {
+      setAudioBlob(null);
+      setAudioURL(null);
+    },
+  });
+
+  const uploadRecordingMetadata = api.ibm.uploadRecordingMetadata.useMutation();
+
+  const handleUpload = async () => {
+    if (isUploading || !audioBlob) return;
+
+    const arrayBuffer = await audioBlob.arrayBuffer();
+    const base64 = Buffer.from(arrayBuffer).toString("base64");
+
+    setUploadState(true);
+
+    uploadRecording
+      .mutateAsync({ base64 })
+      .then((id: string) => {
+        setUploadState(false);
+
+        uploadRecordingMetadata.mutate({
+          id: id,
+          location: location ? location : undefined,
+        });
+      })
+      .catch((err) => {
+        console.error(err);
+        setUploadState(false);
+      });
+  };
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && "geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setLocation(position);
+        },
+        (error) => {
+          console.error(error.message);
+        },
+      );
+    } else {
+      console.error("Browser does not support geolocation.");
+    }
+  }, []);
 
   useEffect(() => {
     if (!navigator.mediaDevices?.getUserMedia) {
@@ -26,69 +78,69 @@ export default function Recorder({
   }, []);
 
   const resetRecording = () => {
-    onRecordingStateChange(null);
+    setAudioBlob(null);
+    setAudioURL(null);
     setTimeLeft(maxDuration);
     clearInterval(countdownIntervalRef.current);
   };
 
   const startRecording = async () => {
+    if (isUploading) return;
+
     const { connect } = await import("extendable-media-recorder-wav-encoder");
     const { MediaRecorder, register } = await import(
       "extendable-media-recorder"
     );
 
     try {
-      if (!mediaRecorderRef.current) {
-        await register(await connect());
-      }
-
-      const stream: MediaStream = await navigator.mediaDevices.getUserMedia({
-        audio: true,
-      });
-      const recorder = new MediaRecorder(stream, { mimeType: "audio/wav" });
-
-      console.log(stream.getAudioTracks()[0]?.getSettings());
-
-      resetRecording();
-      mediaRecorderRef.current = recorder as MediaRecorder;
-
-      const chunks: Blob[] = [];
-
-      recorder.ondataavailable = (e: BlobEvent) => {
-        chunks.push(e.data);
-      };
-
-      recorder.onstop = () => {
-        const blob = new Blob(chunks, { type: "audio/wav" });
-        onRecordingStateChange(blob);
-        setIsRecording(false);
-      };
-
-      recorder.start();
-      setIsRecording(true);
-
-      // Countdown timer.
-      countdownIntervalRef.current = window.setInterval(() => {
-        setTimeLeft((prev) => {
-          if (prev <= 1) {
-            clearInterval(countdownIntervalRef.current);
-            recorder.stop();
-            return maxDuration; // Reset timer after stopping.
-          }
-          return prev - 1;
-        });
-      }, 1000);
-
-      // Automatically stop the recording after 15 seconds.
-      setTimeout(() => {
-        if (recorder.state !== "inactive") {
-          recorder.stop();
-        }
-      }, maxDuration * 1000);
+      await register(await connect());
     } catch (err) {
-      setErrorMessage("Error accessing microphone.");
       console.error(err);
     }
+
+    const stream: MediaStream = await navigator.mediaDevices.getUserMedia({
+      audio: true,
+    });
+    const recorder = new MediaRecorder(stream, { mimeType: "audio/wav" });
+
+    resetRecording();
+    mediaRecorderRef.current = recorder as MediaRecorder;
+
+    const chunks: Blob[] = [];
+
+    recorder.ondataavailable = (e: BlobEvent) => {
+      chunks.push(e.data);
+    };
+
+    recorder.onstop = () => {
+      const blob = new Blob(chunks, { type: "audio/wav" });
+      setAudioBlob(blob);
+      const url = URL.createObjectURL(blob);
+      setAudioURL(url);
+      setIsRecording(false);
+    };
+
+    recorder.start();
+    setIsRecording(true);
+
+    // Countdown timer.
+    countdownIntervalRef.current = window.setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(countdownIntervalRef.current);
+          recorder.stop();
+          return maxDuration; // Reset timer after stopping.
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    // Automatically stop the recording after 15 seconds.
+    setTimeout(() => {
+      if (recorder.state !== "inactive") {
+        recorder.stop();
+      }
+    }, maxDuration * 1000);
   };
 
   const stopRecording = () => {
@@ -106,25 +158,48 @@ export default function Recorder({
       <div className="flex flex-col items-center gap-4">
         {isRecording ? (
           <>
-            <Button
+            <div
+              id="btnStop"
               onClick={stopRecording}
-              className="bg-red-500 text-white duration-300 hover:bg-red-500/90"
+              className="rounded-full bg-red-500 p-5 text-slate-200 duration-300 hover:scale-105 hover:cursor-pointer"
             >
-              Stop Recording
-            </Button>
+              <StopIcon className="size-6" />
+            </div>
             <div className="flex flex-col items-center">
               <p className="text-3xl">{timeLeft}</p>
               <p>seconds left</p>
             </div>
           </>
-        ) : (
-          <Button
+        ) : !audioBlob ? (
+          <div
+            id="btnRecord"
             onClick={startRecording}
-            disabled={disabled}
-            className="bg-green-500 text-white duration-300 hover:bg-green-500/90"
+            className={`rounded-full bg-slate-200 p-5 duration-300 hover:scale-105 ${isUploading ? "pointer-events-none opacity-40" : "hover:cursor-pointer"}`}
           >
-            Start Recording
-          </Button>
+            <div className="size-6 rounded-full bg-red-500"></div>
+          </div>
+        ) : (
+          <>
+            <div
+              id="btnReset"
+              onClick={resetRecording}
+              className={`rounded-full bg-red-500 p-5 duration-300 hover:scale-105 ${isUploading ? "pointer-events-none opacity-40" : "hover:cursor-pointer"}`}
+            >
+              <ResetIcon className="size-6" />
+            </div>
+            {audioURL && <CustomAudioPlayer src={audioURL} />}
+            <div
+              id="btnUpload"
+              onClick={handleUpload}
+              className={`rounded-full bg-blue-400 p-5 duration-300 hover:scale-105 ${isUploading ? "pointer-events-none" : "hover:cursor-pointer"}`}
+            >
+              {isUploading ? (
+                <UpdateIcon className="size-6 animate-spin" />
+              ) : (
+                <UploadIcon className="size-6" />
+              )}
+            </div>
+          </>
         )}
       </div>
       {errorMessage && <p>{errorMessage}</p>}

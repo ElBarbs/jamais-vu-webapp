@@ -13,7 +13,7 @@ const lato = Lato({
 
 const MyApp: AppType = ({ Component, pageProps }) => {
   return (
-    <div className={`${lato.variable} bg-[#f8f8f8] font-sans text-[#222]`}>
+    <div className={`${lato.variable} bg-[#02111B] font-sans text-slate-200`}>
       <Component {...pageProps} />
     </div>
   );

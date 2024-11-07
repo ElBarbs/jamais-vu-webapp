@@ -1,5 +1,5 @@
 import Head from "next/head";
-import Menu from "~/components/menu";
+import Header from "~/components/header";
 
 export default function Explore() {
   return (
@@ -9,12 +9,10 @@ export default function Explore() {
         <meta name="description" content="Explore" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
-      <header className="flex min-h-24 flex-row items-center justify-center">
-        <Menu />
-      </header>
-      <main className="m-8 flex min-h-[60svh] flex-col items-center justify-center">
+      <Header />
+      <main className="m-8 flex flex-col items-center justify-start">
         <div className="container flex flex-col items-center justify-center gap-8">
-          <p className="text-center text-4xl font-bold">Coming Soon</p>
+          <p className="text-center text-2xl font-bold">Coming Soon!</p>
         </div>
       </main>
     </>

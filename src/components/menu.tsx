@@ -20,8 +20,8 @@ export default function Menu() {
             <NavigationMenuLink
               className={`${navigationMenuTriggerStyle()} ${
                 router.pathname === "/"
-                  ? "bg-transparent underline underline-offset-8 hover:bg-transparent"
-                  : "bg-transparent hover:bg-transparent"
+                  ? "pointer-events-none text-[#09090b]"
+                  : "bg-transparent"
               }`}
             >
               Home
@@ -33,8 +33,8 @@ export default function Menu() {
             <NavigationMenuLink
               className={`${navigationMenuTriggerStyle()} ${
                 router.pathname === "/explore"
-                  ? "bg-transparent underline underline-offset-8 hover:bg-transparent"
-                  : "bg-transparent hover:bg-transparent"
+                  ? "pointer-events-none text-[#09090b]"
+                  : "bg-transparent"
               }`}
             >
               Explore
@@ -46,8 +46,8 @@ export default function Menu() {
             <NavigationMenuLink
               className={`${navigationMenuTriggerStyle()} ${
                 router.pathname === "/about"
-                  ? "bg-transparent underline underline-offset-8 hover:bg-transparent"
-                  : "bg-transparent hover:bg-transparent"
+                  ? "pointer-events-none text-[#09090b]"
+                  : "bg-transparent"
               }`}
             >
               About

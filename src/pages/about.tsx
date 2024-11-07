@@ -1,5 +1,5 @@
 import Head from "next/head";
-import Menu from "~/components/menu";
+import Header from "~/components/header";
 
 export default function About() {
   return (
@@ -9,13 +9,11 @@ export default function About() {
         <meta name="description" content="About" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
-      <header className="flex min-h-24 flex-row items-center justify-center">
-        <Menu />
-      </header>
-      <main className="m-8 flex min-h-[60svh] flex-col items-center justify-center">
+      <Header />
+      <main className="m-8 flex flex-col items-center justify-start">
         <div className="container flex max-w-3xl flex-col items-center justify-center gap-8">
           <div className="flex flex-col gap-2">
-            <p className="text-center text-3xl font-bold sm:text-left">
+            <p className="text-center text-xl font-bold sm:text-left">
               Overview
             </p>
             <p className="text-justify">
@@ -30,7 +28,7 @@ export default function About() {
             </p>
           </div>
           <div className="flex flex-col gap-2">
-            <p className="text-center text-3xl font-bold sm:text-left">
+            <p className="text-center text-xl font-bold sm:text-left">
               Concept
             </p>
             <p className="text-justify">
