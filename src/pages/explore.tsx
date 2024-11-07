@@ -10,7 +10,7 @@ export default function Explore() {
         <link rel="icon" href="/favicon.ico" />
       </Head>
       <Header />
-      <main className="m-8 flex flex-col items-center justify-start">
+      <main className="mx-8 my-4 flex flex-col items-center justify-start">
         <div className="container flex flex-col items-center justify-center gap-8">
           <p className="text-center text-2xl font-bold">Coming Soon!</p>
         </div>

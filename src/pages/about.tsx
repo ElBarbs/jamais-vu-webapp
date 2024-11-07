@@ -10,7 +10,7 @@ export default function About() {
         <link rel="icon" href="/favicon.ico" />
       </Head>
       <Header />
-      <main className="m-8 flex flex-col items-center justify-start">
+      <main className="mx-8 my-4 flex flex-col items-center justify-start">
         <div className="container flex max-w-3xl flex-col items-center justify-center gap-8">
           <div className="flex flex-col gap-2">
             <p className="text-center text-xl font-bold sm:text-left">
