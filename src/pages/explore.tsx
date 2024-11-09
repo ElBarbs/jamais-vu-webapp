@@ -8,7 +8,6 @@ export default function Explore() {
       <Head>
         <title>Jamais Vu - Explore</title>
         <meta name="description" content="Explore" />
-        <link rel="icon" href="/favicon.ico" />
       </Head>
       <Header />
       <main className="mx-8 my-4 flex flex-col items-center justify-start">

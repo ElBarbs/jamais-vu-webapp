@@ -9,7 +9,6 @@ export default function Home() {
       <Head>
         <title>Jamais Vu</title>
         <meta name="description" content="Jamais Vu" />
-        <link rel="icon" href="/favicon.ico" />
       </Head>
       <Header />
       <main className="mx-8 my-4 flex flex-col items-center justify-start">

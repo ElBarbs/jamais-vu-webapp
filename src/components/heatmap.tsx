@@ -19,6 +19,7 @@ export default function Heatmap() {
       style: MapStyle.DATAVIZ.DARK,
       zoom: 13,
       geolocate: true,
+      fullscreenControl: true,
     });
 
     map.current.on("load", () => {
