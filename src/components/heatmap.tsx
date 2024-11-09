@@ -36,7 +36,7 @@ export default function Heatmap() {
   }, [isMapLoaded, data]);
 
   return (
-    <div className="relative h-[70svh] w-full">
+    <div className="relative h-[70svh] w-full border border-slate-200">
       <div ref={mapContainer} className="absolute h-full w-full" />
     </div>
   );

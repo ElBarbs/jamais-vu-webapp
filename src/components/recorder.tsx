@@ -1,5 +1,5 @@
 import {
-  ResetIcon,
+  Cross1Icon,
   StopIcon,
   UpdateIcon,
   UploadIcon,
@@ -161,9 +161,10 @@ export default function Recorder() {
             <div
               id="btnStop"
               onClick={stopRecording}
-              className="rounded-full bg-red-500 p-5 text-slate-200 duration-300 hover:scale-105 hover:cursor-pointer"
+              className="relative rounded-full bg-red-500 p-5 text-slate-200 duration-300 hover:scale-105 hover:cursor-pointer"
             >
-              <StopIcon className="size-6" />
+              <span className="absolute inset-0 animate-ping rounded-full bg-red-500 opacity-75"></span>
+              <StopIcon className="relative size-6" />
             </div>
             <div className="flex flex-col items-center">
               <p className="text-3xl">{timeLeft}</p>
@@ -185,7 +186,7 @@ export default function Recorder() {
               onClick={resetRecording}
               className={`rounded-full bg-red-500 p-5 duration-300 hover:scale-105 ${isUploading ? "pointer-events-none opacity-40" : "hover:cursor-pointer"}`}
             >
-              <ResetIcon className="size-6" />
+              <Cross1Icon className="size-6" />
             </div>
             {audioURL && <CustomAudioPlayer src={audioURL} />}
             <div
