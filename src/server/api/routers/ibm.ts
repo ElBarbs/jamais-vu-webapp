@@ -4,15 +4,11 @@ import { CloudantV1, IamAuthenticator } from "@ibm-cloud/cloudant";
 import { Credentials, S3 } from "ibm-cos-sdk";
 import { fileTypeFromBuffer } from "file-type";
 import { nanoid } from "nanoid";
+import type { FeatureCollection, Geometry, GeoJsonProperties } from "geojson";
 
 import { env } from "~/env";
 import { createTRPCRouter, publicProcedure } from "../trpc";
-
-type RecordingDocument = {
-  filename: string;
-  location: string;
-  timestamp: string;
-};
+import type { RecordingDocument } from "~/lib/definition";
 
 const authenticator = new IamAuthenticator({
   apikey: env.CLOUDANT_APIKEY,
@@ -61,6 +57,33 @@ export const ibmRouter = createTRPCRouter({
         });
       }
     }
+  }),
+  getLocationData: publicProcedure.query(async () => {
+    const documents = await cloudant.postAllDocs({
+      db: "jamaisvu-recordings",
+      includeDocs: true,
+    });
+
+    const locationData = documents.result.rows
+      .map((row) => row.doc as RecordingDocument)
+      .map((doc) => ({
+        latitude: doc.location.latitude,
+        longitude: doc.location.longitude,
+      }));
+
+    const resp: FeatureCollection<Geometry, GeoJsonProperties> = {
+      type: "FeatureCollection",
+      features: locationData.map((item) => ({
+        type: "Feature",
+        geometry: {
+          type: "Point",
+          coordinates: [item.longitude, item.latitude],
+        },
+        properties: {},
+      })),
+    };
+
+    return resp;
   }),
   uploadRecordingMetadata: publicProcedure
     .input(
