@@ -1,12 +1,8 @@
-import {
-  Cross1Icon,
-  StopIcon,
-  UpdateIcon,
-  UploadIcon,
-} from "@radix-ui/react-icons";
+import { PlayIcon, StopIcon } from "@radix-ui/react-icons";
 import { useEffect, useState, useRef } from "react";
 
-import CustomAudioPlayer from "~/components/audio-player";
+import SpeakerGrid from "~/components/speaker-grid";
+import Screws from "~/components/screws";
 import { api } from "~/utils/api";
 
 export default function Recorder() {
@@ -17,16 +13,17 @@ export default function Recorder() {
   const [errorMessage, setErrorMessage] = useState<string>("");
 
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
-  const [audioURL, setAudioURL] = useState<string | null>(null);
+  const [audioURL, setAudioURL] = useState<string>("");
   const [location, setLocation] = useState<GeolocationPosition | null>(null);
 
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const countdownIntervalRef = useRef<number | undefined>(undefined);
 
   const uploadRecording = api.ibm.uploadRecording.useMutation({
     onSuccess: () => {
       setAudioBlob(null);
-      setAudioURL(null);
+      setAudioURL("");
     },
   });
 
@@ -49,6 +46,8 @@ export default function Recorder() {
           id: id,
           location: location ? location : undefined,
         });
+
+        resetRecording();
       })
       .catch((err) => {
         console.error(err);
@@ -79,7 +78,7 @@ export default function Recorder() {
 
   const resetRecording = () => {
     setAudioBlob(null);
-    setAudioURL(null);
+    setAudioURL("");
     setTimeLeft(maxDuration);
     clearInterval(countdownIntervalRef.current);
   };
@@ -155,53 +154,81 @@ export default function Recorder() {
 
   return (
     <div className="flex flex-col items-center gap-8">
-      <div className="flex flex-col items-center gap-4">
-        {isRecording ? (
-          <>
-            <div
-              id="btnStop"
-              onClick={stopRecording}
-              className="relative rounded-full bg-red-500 p-5 text-slate-200 duration-300 hover:scale-105 hover:cursor-pointer"
-            >
-              <span className="absolute inset-0 animate-ping rounded-full bg-red-500 opacity-75"></span>
-              <StopIcon className="relative size-6" />
-            </div>
-            <div className="flex flex-col items-center">
-              <p className="text-3xl">{timeLeft}</p>
-              <p>seconds left</p>
-            </div>
-          </>
-        ) : !audioBlob ? (
+      <div className="relative flex max-h-[500px] min-w-72 flex-col items-center gap-4 rounded-md border border-gray-900 bg-gradient-to-br from-gray-900 via-gray-950 to-gray-900 py-8 shadow-xl">
+        <div
+          id="recordLight"
+          className={`absolute right-5 top-5 size-2 rounded-full bg-red-500/40 shadow-sm transition-colors ${isRecording ? "animate-blink-color" : ""}`}
+        ></div>
+        <div
+          id="device-screen-container"
+          className="flex w-8/12 flex-col gap-y-2"
+        >
+          <Screws />
+          <div
+            id="screen"
+            className="flex h-32 max-w-60 flex-col items-center justify-center rounded-md border-2 border-gray-600 bg-[#78FF34] p-2 text-center text-sm text-gray-950 shadow-inner"
+          >
+            {isRecording ? (
+              <>
+                <p className="text-3xl">{timeLeft}</p>
+                <p>seconds left</p>
+              </>
+            ) : audioBlob ? (
+              <p>
+                {isUploading
+                  ? "Uploading..."
+                  : "Click the blue button to upload your recording."}
+              </p>
+            ) : (
+              <p>Click the red button to start recording.</p>
+            )}
+          </div>
+          <Screws />
+        </div>
+        <div id="device-buttons" className="flex gap-4">
           <div
             id="btnRecord"
-            onClick={startRecording}
-            className={`rounded-full bg-slate-200 p-5 duration-300 hover:scale-105 ${isUploading ? "pointer-events-none opacity-40" : "hover:cursor-pointer"}`}
+            onClick={isRecording ? stopRecording : startRecording}
+            className={`size-8 rounded-sm bg-red-500 shadow-md duration-300 hover:scale-105 ${isUploading ? "pointer-events-none opacity-40" : "hover:cursor-pointer"}`}
+          ></div>
+          <div
+            id="btnUpload"
+            onClick={handleUpload}
+            className={`size-8 rounded-sm bg-blue-400 shadow-md duration-300 hover:scale-105 ${isUploading ? "pointer-events-none opacity-40" : "hover:cursor-pointer"}`}
+          ></div>
+        </div>
+        <div
+          id="device-playback-container"
+          className="flex w-8/12 flex-col gap-y-2"
+        >
+          <div
+            id="device-playback-buttons"
+            className="flex items-center justify-center gap-4"
           >
-            <div className="size-6 rounded-full bg-red-500"></div>
+            <div
+              className="flex items-center justify-center rounded-md bg-gray-600 p-1 px-2 duration-300 hover:scale-105 hover:cursor-pointer"
+              onClick={() => {
+                if (audioRef.current) {
+                  void audioRef.current.play();
+                }
+              }}
+            >
+              <PlayIcon className="size-4" />
+            </div>
+            <div
+              className="flex items-center justify-center rounded-md bg-gray-600 p-1 px-2 duration-300 hover:scale-105 hover:cursor-pointer"
+              onClick={() => {
+                if (audioRef.current) {
+                  audioRef.current.pause();
+                }
+              }}
+            >
+              <StopIcon className="size-4" />
+            </div>
           </div>
-        ) : (
-          <>
-            <div
-              id="btnReset"
-              onClick={resetRecording}
-              className={`rounded-full bg-red-500 p-5 duration-300 hover:scale-105 ${isUploading ? "pointer-events-none opacity-40" : "hover:cursor-pointer"}`}
-            >
-              <Cross1Icon className="size-6" />
-            </div>
-            {audioURL && <CustomAudioPlayer src={audioURL} />}
-            <div
-              id="btnUpload"
-              onClick={handleUpload}
-              className={`rounded-full bg-blue-400 p-5 duration-300 hover:scale-105 ${isUploading ? "pointer-events-none" : "hover:cursor-pointer"}`}
-            >
-              {isUploading ? (
-                <UpdateIcon className="size-6 animate-spin" />
-              ) : (
-                <UploadIcon className="size-6" />
-              )}
-            </div>
-          </>
-        )}
+          <SpeakerGrid rows={5} cols={10} />
+          <audio ref={audioRef} src={audioURL} loop></audio>
+        </div>
       </div>
       {errorMessage && <p>{errorMessage}</p>}
     </div>

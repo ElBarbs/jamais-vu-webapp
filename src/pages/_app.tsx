@@ -1,16 +1,10 @@
-import { Lato } from "next/font/google";
 import { type AppType } from "next/app";
 import Head from "next/head";
 
+import { supplyFont } from "~/styles/fonts/font-loader";
 import { api } from "~/utils/api";
 
 import "~/styles/globals.css";
-
-const lato = Lato({
-  weight: "400",
-  subsets: ["latin"],
-  variable: "--font-lato",
-});
 
 const MyApp: AppType = ({ Component, pageProps }) => {
   return (
@@ -22,7 +16,9 @@ const MyApp: AppType = ({ Component, pageProps }) => {
           content="width=device-width, initial-scale=1.0, user-scalable=no"
         />
       </Head>
-      <div className={`${lato.variable} bg-[#02111B] font-sans text-slate-200`}>
+      <div
+        className={`${supplyFont.variable} font-supply bg-gray-950 text-gray-200`}
+      >
         <Component {...pageProps} />
       </div>
     </>
