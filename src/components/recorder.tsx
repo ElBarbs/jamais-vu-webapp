@@ -3,6 +3,7 @@ import { useEffect, useState, useRef } from "react";
 
 import SpeakerGrid from "~/components/speaker-grid";
 import Screws from "~/components/screws";
+import Waveform from "~/components/waveform";
 import { api } from "~/utils/api";
 
 export default function Recorder() {
@@ -10,13 +11,13 @@ export default function Recorder() {
   const [timeLeft, setTimeLeft] = useState(maxDuration);
   const [isRecording, setIsRecording] = useState(false);
   const [isUploading, setUploadState] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string>("");
 
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [audioURL, setAudioURL] = useState<string>("");
   const [location, setLocation] = useState<GeolocationPosition | null>(null);
 
-  const audioRef = useRef<HTMLAudioElement | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const countdownIntervalRef = useRef<number | undefined>(undefined);
 
@@ -166,13 +167,16 @@ export default function Recorder() {
           <Screws />
           <div
             id="screen"
-            className="flex h-32 max-w-60 flex-col items-center justify-center rounded-md border-2 border-gray-600 bg-[#78FF34] p-2 text-center text-sm text-gray-950 shadow-inner"
+            className="flex h-32 max-w-60 flex-col items-center justify-center rounded-md border-2 border-gray-600 bg-[#78FF34] text-center text-sm text-gray-950 shadow-inner"
           >
             {isRecording && (
               <>
                 <p className="text-3xl">{timeLeft}</p>
                 <p>seconds left</p>
               </>
+            )}
+            {audioBlob && !isUploading && (
+              <Waveform url={audioURL} playing={isPlaying} />
             )}
             {isUploading && <p>Uploading...</p>}
           </div>
@@ -201,32 +205,15 @@ export default function Recorder() {
           className="flex w-8/12 flex-col gap-y-2"
         >
           <div
-            id="device-playback-buttons"
-            className="flex items-center justify-center gap-4"
+            className="m-auto flex w-fit items-center justify-center rounded-md bg-gray-600 p-1 px-2 duration-300 hover:scale-105 hover:cursor-pointer"
+            onClick={() => {
+              setIsPlaying((prev) => !prev);
+            }}
           >
-            <div
-              className="flex items-center justify-center rounded-md bg-gray-600 p-1 px-2 duration-300 hover:scale-105 hover:cursor-pointer"
-              onClick={() => {
-                if (audioRef.current) {
-                  void audioRef.current.play();
-                }
-              }}
-            >
-              <PlayIcon className="size-4" />
-            </div>
-            <div
-              className="flex items-center justify-center rounded-md bg-gray-600 p-1 px-2 duration-300 hover:scale-105 hover:cursor-pointer"
-              onClick={() => {
-                if (audioRef.current) {
-                  audioRef.current.pause();
-                }
-              }}
-            >
-              <PauseIcon className="size-4" />
-            </div>
+            <PlayIcon className="size-4" />
+            <PauseIcon className="size-4" />
           </div>
           <SpeakerGrid rows={5} cols={10} />
-          <audio ref={audioRef} src={audioURL} loop></audio>
         </div>
       </div>
       {errorMessage && <p>{errorMessage}</p>}
