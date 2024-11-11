@@ -15,7 +15,7 @@ export default function About() {
             <p className="text-center text-xl font-bold sm:text-left">
               Overview
             </p>
-            <p className="text-justify">
+            <p className="text-justify text-sm">
               Jamais Vu is an interactive installation project designed to evoke
               the sensation of unfamiliarity with familiar environments through
               soundscapes. The project collects and transforms crowdsourced
@@ -30,7 +30,7 @@ export default function About() {
             <p className="text-center text-xl font-bold sm:text-left">
               Concept
             </p>
-            <p className="text-justify">
+            <p className="text-justify text-sm">
               The project takes inspiration from theories like Hauntology (Mark
               Fisher) and Hyperreality (Jean Baudrillard), exploring the ways in
               which familiar sounds can be distorted to create a sense of

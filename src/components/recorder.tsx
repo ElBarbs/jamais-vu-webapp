@@ -1,4 +1,4 @@
-import { PlayIcon, StopIcon } from "@radix-ui/react-icons";
+import { PauseIcon, PlayIcon } from "@radix-ui/react-icons";
 import { useEffect, useState, useRef } from "react";
 
 import SpeakerGrid from "~/components/speaker-grid";
@@ -153,8 +153,8 @@ export default function Recorder() {
   };
 
   return (
-    <div className="flex flex-col items-center gap-8">
-      <div className="relative flex max-h-[500px] min-w-72 flex-col items-center gap-4 rounded-md border border-gray-900 bg-gradient-to-br from-gray-900 via-gray-950 to-gray-900 py-8 shadow-xl">
+    <div className="flex select-none flex-col items-center gap-8">
+      <div className="relative flex max-h-[500px] min-w-64 flex-col items-center gap-4 rounded-md border border-gray-900 bg-gradient-to-br from-gray-900 via-gray-950 to-gray-900 py-8 shadow-xl">
         <div
           id="recordLight"
           className={`absolute right-5 top-5 size-2 rounded-full bg-red-500/40 shadow-sm transition-colors ${isRecording ? "animate-blink-color" : ""}`}
@@ -168,34 +168,33 @@ export default function Recorder() {
             id="screen"
             className="flex h-32 max-w-60 flex-col items-center justify-center rounded-md border-2 border-gray-600 bg-[#78FF34] p-2 text-center text-sm text-gray-950 shadow-inner"
           >
-            {isRecording ? (
+            {isRecording && (
               <>
                 <p className="text-3xl">{timeLeft}</p>
                 <p>seconds left</p>
               </>
-            ) : audioBlob ? (
-              <p>
-                {isUploading
-                  ? "Uploading..."
-                  : "Click the blue button to upload your recording."}
-              </p>
-            ) : (
-              <p>Click the red button to start recording.</p>
             )}
+            {isUploading && <p>Uploading...</p>}
           </div>
           <Screws />
         </div>
-        <div id="device-buttons" className="flex gap-4">
-          <div
-            id="btnRecord"
-            onClick={isRecording ? stopRecording : startRecording}
-            className={`size-8 rounded-sm bg-red-500 shadow-md duration-300 hover:scale-105 ${isUploading ? "pointer-events-none opacity-40" : "hover:cursor-pointer"}`}
-          ></div>
-          <div
-            id="btnUpload"
-            onClick={handleUpload}
-            className={`size-8 rounded-sm bg-blue-400 shadow-md duration-300 hover:scale-105 ${isUploading ? "pointer-events-none opacity-40" : "hover:cursor-pointer"}`}
-          ></div>
+        <div id="device-buttons" className="flex items-center gap-4 text-xs">
+          <div className="flex w-24 items-center gap-2">
+            <span>REC/STOP</span>
+            <div
+              id="btnRecord"
+              onClick={isRecording ? stopRecording : startRecording}
+              className={`size-8 rounded-sm bg-red-500 shadow-md duration-300 hover:scale-105 ${isUploading ? "pointer-events-none opacity-40" : "hover:cursor-pointer"}`}
+            ></div>
+          </div>
+          <div className="flex w-24 items-center gap-2">
+            <div
+              id="btnUpload"
+              onClick={handleUpload}
+              className={`size-8 rounded-sm bg-blue-400 shadow-md duration-300 hover:scale-105 ${isUploading ? "pointer-events-none opacity-40" : "hover:cursor-pointer"}`}
+            ></div>
+            <span>UPLOAD</span>
+          </div>
         </div>
         <div
           id="device-playback-container"
@@ -223,7 +222,7 @@ export default function Recorder() {
                 }
               }}
             >
-              <StopIcon className="size-4" />
+              <PauseIcon className="size-4" />
             </div>
           </div>
           <SpeakerGrid rows={5} cols={10} />
