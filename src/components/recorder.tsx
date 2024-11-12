@@ -117,6 +117,7 @@ export default function Recorder() {
       setAudioBlob(blob);
       const url = URL.createObjectURL(blob);
       setAudioURL(url);
+      stream.getTracks().forEach((track) => track.stop());
       setIsRecording(false);
     };
 
@@ -171,7 +172,9 @@ export default function Recorder() {
           >
             {isRecording && (
               <>
-                <p className="text-3xl">{timeLeft}</p>
+                <p className="text-3xl">
+                  {`00:${(timeLeft % 60).toString().padStart(2, "0")}`}
+                </p>
                 <p>seconds left</p>
               </>
             )}
