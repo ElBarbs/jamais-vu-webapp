@@ -16,7 +16,6 @@ export default function Waveform({ url, playing = false }: WaveformProps) {
         container: containerRef.current,
         barWidth: 2,
         sampleRate: 48000,
-        normalize: true,
       });
 
       wavesurferRef.current.on("finish", () => {
