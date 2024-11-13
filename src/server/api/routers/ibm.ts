@@ -85,30 +85,13 @@ export const ibmRouter = createTRPCRouter({
 
     return resp;
   }),
-  uploadRecordingMetadata: publicProcedure
+  uploadRecording: publicProcedure
     .input(
       z.object({
-        id: z.string(),
+        base64: z.string(),
         location: z.optional(z.custom<GeolocationPosition>()),
       }),
     )
-    .mutation(async ({ input }) => {
-      const response = await cloudant.postDocument({
-        db: "jamaisvu-recordings",
-        document: {
-          filename: `${input.id}.wav`,
-          location: {
-            latitude: input.location?.coords.latitude,
-            longitude: input.location?.coords.longitude,
-          },
-          timestamp: Date.now(),
-        },
-      });
-
-      return response;
-    }),
-  uploadRecording: publicProcedure
-    .input(z.object({ base64: z.string() }))
     .mutation(async ({ input }) => {
       const buffer = Buffer.from(input.base64, "base64");
       const fileType = await fileTypeFromBuffer(buffer);
@@ -127,8 +110,20 @@ export const ibmRouter = createTRPCRouter({
         Body: buffer,
       };
 
-      await cos.putObject(params).promise();
+      cos.putObject(params).promise();
 
-      return id;
+      const response = await cloudant.postDocument({
+        db: "jamaisvu-recordings",
+        document: {
+          filename: `${id}.wav`,
+          location: {
+            latitude: input.location?.coords.latitude,
+            longitude: input.location?.coords.longitude,
+          },
+          timestamp: Date.now(),
+        },
+      });
+
+      return response;
     }),
 });

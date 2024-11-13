@@ -16,7 +16,9 @@ export default function Recorder() {
 
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [audioURL, setAudioURL] = useState<string>("");
-  const [location, setLocation] = useState<GeolocationPosition | null>(null);
+  const [location, setLocation] = useState<GeolocationPosition | undefined>(
+    undefined,
+  );
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const countdownIntervalRef = useRef<number | undefined>(undefined);
@@ -28,8 +30,6 @@ export default function Recorder() {
     },
   });
 
-  const uploadRecordingMetadata = api.ibm.uploadRecordingMetadata.useMutation();
-
   const handleUpload = async () => {
     if (isUploading || !audioBlob) return;
 
@@ -39,21 +39,9 @@ export default function Recorder() {
     setUploadState(true);
 
     uploadRecording
-      .mutateAsync({ base64 })
-      .then((id: string) => {
-        uploadRecordingMetadata
-          .mutateAsync({
-            id: id,
-            location: location ? location : undefined,
-          })
-          .then(() => {
-            setUploadState(false);
-          })
-          .catch((err) => {
-            console.error(err);
-            setUploadState(false);
-          });
-
+      .mutateAsync({ base64, location })
+      .then(() => {
+        setUploadState(false);
         resetRecording();
       })
       .catch((err) => {
