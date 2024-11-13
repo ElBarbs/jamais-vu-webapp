@@ -41,12 +41,18 @@ export default function Recorder() {
     uploadRecording
       .mutateAsync({ base64 })
       .then((id: string) => {
-        setUploadState(false);
-
-        uploadRecordingMetadata.mutate({
-          id: id,
-          location: location ? location : undefined,
-        });
+        uploadRecordingMetadata
+          .mutateAsync({
+            id: id,
+            location: location ? location : undefined,
+          })
+          .then(() => {
+            setUploadState(false);
+          })
+          .catch((err) => {
+            console.error(err);
+            setUploadState(false);
+          });
 
         resetRecording();
       })
@@ -62,12 +68,12 @@ export default function Recorder() {
         (position) => {
           setLocation(position);
         },
-        (error) => {
-          console.error(error.message);
+        () => {
+          setErrorMessage("Please enable location access to start recording.");
         },
       );
     } else {
-      console.error("Browser does not support geolocation.");
+      setErrorMessage("Browser does not support geolocation.");
     }
   }, []);
 
@@ -87,27 +93,55 @@ export default function Recorder() {
   const startRecording = async () => {
     if (isUploading) return;
 
+    // Reset error message.
+    setErrorMessage("");
+
+    // Check if location access is enabled.
+    if (!location) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setLocation(position);
+        },
+        () => {
+          setErrorMessage("Please enable location access to start recording.");
+          return;
+        },
+      );
+    }
+
     const { connect } = await import("extendable-media-recorder-wav-encoder");
     const { MediaRecorder, register } = await import(
       "extendable-media-recorder"
     );
 
+    // Register the WAV encoder.
     try {
       await register(await connect());
     } catch (err) {
       console.error(err);
     }
 
-    const stream: MediaStream = await navigator.mediaDevices.getUserMedia({
-      audio: true,
-    });
-    const recorder = new MediaRecorder(stream, { mimeType: "audio/wav" });
+    // Check if microphone access is enabled.
+    let stream: MediaStream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({
+        audio: true,
+      });
+    } catch (err) {
+      if (err instanceof Error && err.name === "NotAllowedError") {
+        setErrorMessage("Please enable microphone access to start recording.");
+      }
+      return;
+    }
 
-    resetRecording();
+    // Initialize the recorder.
+    const recorder = new MediaRecorder(stream, { mimeType: "audio/wav" });
     mediaRecorderRef.current = recorder as MediaRecorder;
 
-    const chunks: Blob[] = [];
+    // Reset recording state.
+    resetRecording();
 
+    const chunks: Blob[] = [];
     recorder.ondataavailable = (e: BlobEvent) => {
       chunks.push(e.data);
     };
@@ -168,7 +202,7 @@ export default function Recorder() {
           <Screws />
           <div
             id="screen"
-            className="flex h-32 max-w-60 flex-col items-center justify-center rounded-md border-2 border-gray-600 bg-[#78FF34] text-center text-sm text-gray-950 shadow-inner"
+            className="flex h-32 max-w-60 flex-col items-center justify-center rounded-md border-2 border-gray-600 bg-[#78FF34] text-center text-xs text-gray-950 shadow-inner"
           >
             {isRecording && (
               <>
@@ -182,6 +216,7 @@ export default function Recorder() {
               <Waveform url={audioURL} playing={isPlaying} />
             )}
             {isUploading && <p>Uploading...</p>}
+            {errorMessage && <p className="mx-2">{errorMessage}</p>}
           </div>
           <Screws />
         </div>
@@ -219,7 +254,6 @@ export default function Recorder() {
           <SpeakerGrid rows={5} cols={10} />
         </div>
       </div>
-      {errorMessage && <p>{errorMessage}</p>}
     </div>
   );
 }
