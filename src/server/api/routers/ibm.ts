@@ -110,7 +110,7 @@ export const ibmRouter = createTRPCRouter({
         Body: buffer,
       };
 
-      cos.putObject(params).promise();
+      cos.putObject(params).send();
 
       const response = await cloudant.postDocument({
         db: "jamaisvu-recordings",
