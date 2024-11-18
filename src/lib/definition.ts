@@ -4,5 +4,6 @@ export type RecordingDocument = {
     latitude: number;
     longitude: number;
   };
+  isClientGeolocation: boolean;
   timestamp: string;
 };

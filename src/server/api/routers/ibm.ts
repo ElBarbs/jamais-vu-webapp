@@ -89,7 +89,9 @@ export const ibmRouter = createTRPCRouter({
     .input(
       z.object({
         base64: z.string(),
-        location: z.optional(z.custom<GeolocationPosition>()),
+        ip: z.string(),
+        latitude: z.number().optional(),
+        longitude: z.number().optional(),
       }),
     )
     .mutation(async ({ input }) => {
@@ -110,20 +112,42 @@ export const ibmRouter = createTRPCRouter({
         Body: buffer,
       };
 
+      let response = {};
+      if (!input.latitude || !input.longitude) {
+        await fetch(`http://ip-api.com/json/${input.ip}`).then(async (res) => {
+          const data = (await res.json()) as { lat: number; lon: number };
+          const { lat, lon } = data;
+
+          response = await cloudant.postDocument({
+            db: "jamaisvu-recordings",
+            document: {
+              filename: `${id}.wav`,
+              location: {
+                latitude: lat,
+                longitude: lon,
+              },
+              isClientGeolocation: false,
+              timestamp: Date.now(),
+            },
+          });
+        });
+      } else {
+        response = await cloudant.postDocument({
+          db: "jamaisvu-recordings",
+          document: {
+            filename: `${id}.wav`,
+            location: {
+              latitude: input.latitude,
+              longitude: input.longitude,
+            },
+            isClientGeolocation: true,
+            timestamp: Date.now(),
+          },
+        });
+      }
+
       cos.putObject(params).send();
 
-      const response = await cloudant.postDocument({
-        db: "jamaisvu-recordings",
-        document: {
-          filename: `${id}.wav`,
-          location: {
-            latitude: input.location?.coords.latitude,
-            longitude: input.location?.coords.longitude,
-          },
-          timestamp: Date.now(),
-        },
-      });
-
-      return response;
+      return response as CloudantV1.DocumentResult;
     }),
 });

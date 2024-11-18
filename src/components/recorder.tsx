@@ -16,6 +16,7 @@ export default function Recorder() {
 
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [audioURL, setAudioURL] = useState<string>("");
+  const [ip, setIP] = useState<string>("");
   const [location, setLocation] = useState<GeolocationPosition | undefined>(
     undefined,
   );
@@ -38,14 +39,33 @@ export default function Recorder() {
 
     setUploadState(true);
 
-    uploadRecording
-      .mutateAsync({ base64, location })
-      .then(() => {
-        setUploadState(false);
-        resetRecording();
+    return upload(base64, ip, location);
+  };
+
+  const upload = async (
+    base64: string,
+    ip: string,
+    location?: GeolocationPosition,
+  ) => {
+    if (!location) {
+      return await uploadRecording
+        .mutateAsync({
+          base64: base64,
+          ip: ip,
+        })
+        .then(() => {
+          setUploadState(false);
+        });
+    }
+
+    return await uploadRecording
+      .mutateAsync({
+        base64: base64,
+        ip: ip,
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
       })
-      .catch((err) => {
-        console.error(err);
+      .then(() => {
         setUploadState(false);
       });
   };
@@ -57,17 +77,29 @@ export default function Recorder() {
           setLocation(position);
         },
         () => {
-          setErrorMessage("Please enable location access to start recording.");
+          //getLocationFromIP();
+          //setErrorMessage("Please enable location access to start recording.");
         },
       );
     } else {
-      setErrorMessage("Browser does not support geolocation.");
+      // Get the user's IP address.
+      //getLocationFromIP();
+      //setErrorMessage("Browser does not support geolocation.");
     }
   }, []);
 
   useEffect(() => {
     if (!navigator.mediaDevices?.getUserMedia) {
       setErrorMessage("Browser does not support audio recording.");
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      void fetch("https://api64.ipify.org?format=json").then(async (res) => {
+        const data = (await res.json()) as { ip: string };
+        setIP(data.ip);
+      });
     }
   }, []);
 
@@ -91,8 +123,8 @@ export default function Recorder() {
           setLocation(position);
         },
         () => {
-          setErrorMessage("Please enable location access to start recording.");
-          return;
+          //setErrorMessage("Please enable location access to start recording.");
+          //return;
         },
       );
     }
