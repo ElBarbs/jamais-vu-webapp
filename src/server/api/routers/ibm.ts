@@ -146,7 +146,7 @@ export const ibmRouter = createTRPCRouter({
         });
       }
 
-      cos.putObject(params).send();
+      await cos.putObject(params).promise();
 
       return response as CloudantV1.DocumentResult;
     }),
