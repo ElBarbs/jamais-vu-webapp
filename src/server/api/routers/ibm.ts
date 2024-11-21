@@ -105,49 +105,91 @@ export const ibmRouter = createTRPCRouter({
         });
       }
 
-      const id = nanoid();
+      const uniqueID = nanoid();
+
+      const dateObject = new Date();
+      // Date in format YYYY/MM/DD
+      const date = dateObject.toISOString().split("T")[0]?.replace(/-/g, "/");
+      // Time in format HH:MM:SS
+      const time = dateObject.toTimeString().split(" ")[0];
+
+      let id = "";
+      let response = {};
+
+      // If the client did not provide geolocation data, get it from the IP address.
+      if (!input.latitude || !input.longitude) {
+        await fetch(`http://ip-api.com/json/${input.ip}`).then(async (res) => {
+          const data = (await res.json()) as { lat: number; lon: number };
+          const { lat, lon } = data;
+
+          // Get the city.
+          const city = await getCityFromGeolocation(lat, lon);
+
+          // Generate a unique ID.
+          id = `${city}-${date}-${time}-${uniqueID}`;
+
+          // Save the document to Cloudant.
+          response = await cloudant.postDocument({
+            db: "jamaisvu-recordings",
+            document: {
+              _id: id,
+              filename: `${id}.wav`,
+              location: {
+                city: city,
+                latitude: lat,
+                longitude: lon,
+              },
+              isClientGeolocation: false,
+              timestamp: dateObject.getTime(),
+            },
+          });
+        });
+      } else {
+        // Get the city.
+        const city = await getCityFromGeolocation(
+          input.latitude,
+          input.longitude,
+        );
+
+        // Generate a unique ID.
+        id = `${city}-${date}-${time}-${uniqueID}`;
+
+        // Save the document to Cloudant.
+        response = await cloudant.postDocument({
+          db: "jamaisvu-recordings",
+          document: {
+            _id: id,
+            filename: `${id}.wav`,
+            location: {
+              city: city,
+              latitude: input.latitude,
+              longitude: input.longitude,
+            },
+            isClientGeolocation: true,
+            timestamp: dateObject.getTime(),
+          },
+        });
+      }
+
+      // Set the parameters for the S3 bucket.
       const params = {
         Bucket: "recordings",
         Key: `${id}.wav`,
         Body: buffer,
       };
 
-      let response = {};
-      if (!input.latitude || !input.longitude) {
-        await fetch(`http://ip-api.com/json/${input.ip}`).then(async (res) => {
-          const data = (await res.json()) as { lat: number; lon: number };
-          const { lat, lon } = data;
-
-          response = await cloudant.postDocument({
-            db: "jamaisvu-recordings",
-            document: {
-              filename: `${id}.wav`,
-              location: {
-                latitude: lat,
-                longitude: lon,
-              },
-              isClientGeolocation: false,
-              timestamp: Date.now(),
-            },
-          });
-        });
-      } else {
-        response = await cloudant.postDocument({
-          db: "jamaisvu-recordings",
-          document: {
-            filename: `${id}.wav`,
-            location: {
-              latitude: input.latitude,
-              longitude: input.longitude,
-            },
-            isClientGeolocation: true,
-            timestamp: Date.now(),
-          },
-        });
-      }
-
+      // Upload the audio file to the S3 bucket.
       await cos.putObject(params).promise();
 
+      // Return the response from Cloudant.
       return response as CloudantV1.DocumentResult;
     }),
 });
+
+async function getCityFromGeolocation(lat: number, lon: number) {
+  const res = await fetch(
+    `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=10`,
+  );
+  const data = (await res.json()) as { address: { city: string } };
+  return data.address.city;
+}

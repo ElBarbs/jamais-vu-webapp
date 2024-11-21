@@ -224,6 +224,11 @@ export default function Recorder() {
             id="screen"
             className="flex h-32 max-w-60 flex-col items-center justify-center rounded-md border-2 border-gray-600 bg-[#78FF34] text-center text-xs text-gray-950 shadow-inner"
           >
+            {!isRecording && !audioBlob && (
+              <>
+                <p>Record your surroundings.</p>
+              </>
+            )}
             {isRecording && (
               <>
                 <p className="text-3xl">

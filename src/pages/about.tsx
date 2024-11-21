@@ -13,7 +13,7 @@ export default function About() {
         <div className="container flex max-w-3xl flex-col items-center justify-center gap-8">
           <div className="flex flex-col gap-2">
             <p className="text-center text-xl font-bold sm:text-left">
-              Overview
+              What Is This?
             </p>
             <p className="text-justify text-sm">
               Jamais Vu is an interactive installation project designed to evoke
@@ -28,17 +28,19 @@ export default function About() {
           </div>
           <div className="flex flex-col gap-2">
             <p className="text-center text-xl font-bold sm:text-left">
-              Concept
+              Terms and Conditions
             </p>
             <p className="text-justify text-sm">
-              The project takes inspiration from theories like Hauntology (Mark
-              Fisher) and Hyperreality (Jean Baudrillard), exploring the ways in
-              which familiar sounds can be distorted to create a sense of
-              temporal and spatial dislocation. Through the use of generative
-              soundscapes, visual projections, and physical installations,
-              participants are invited to experience a hyperreal version of the
-              city, prompting critical reflection on how technology mediates
-              their everyday experiences.
+              Jamais Vu is a project created by students from Concordia
+              University for the course CART 461: Tangible Media Studio. This
+              project is not affiliated with the university or any external
+              organizations.
+            </p>
+            <p className="text-justify text-sm">
+              By using this website and uploading an audio recording, you agree
+              to share your geolocation data with us. Your information will not
+              be shared with any third parties and will only be used to serve
+              the purpose of this project.
             </p>
           </div>
         </div>
