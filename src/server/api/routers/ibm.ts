@@ -149,6 +149,7 @@ export const ibmRouter = createTRPCRouter({
             },
           });
         } catch (error) {
+          console.error(error);
           throw new TRPCError({
             code: "BAD_REQUEST",
             message: "Invalid IP address.",

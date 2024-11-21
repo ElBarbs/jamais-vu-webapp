@@ -1,4 +1,5 @@
 import { type AppType } from "next/app";
+import { Analytics } from "@vercel/analytics/react";
 import Head from "next/head";
 
 import { supplyFont } from "~/styles/fonts/font-loader";
@@ -16,8 +17,9 @@ const MyApp: AppType = ({ Component, pageProps }) => {
           content="width=device-width, initial-scale=1.0, user-scalable=no"
         />
       </Head>
+      <Analytics />
       <div
-        className={`${supplyFont.variable} font-supply bg-gray-950 text-gray-200`}
+        className={`${supplyFont.variable} bg-gray-950 font-supply text-gray-200`}
       >
         <Component {...pageProps} />
       </div>
