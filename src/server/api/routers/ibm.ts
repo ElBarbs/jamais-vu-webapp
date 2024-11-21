@@ -105,35 +105,40 @@ export const ibmRouter = createTRPCRouter({
         });
       }
 
-      const uniqueID = nanoid();
-
       const dateObject = new Date();
       // Date in format YYYY/MM/DD
       const date = dateObject.toISOString().split("T")[0]?.replace(/-/g, "/");
       // Time in format HH:MM:SS
       const time = dateObject.toTimeString().split(" ")[0];
 
-      let id = "";
+      let filename = "";
       let response = {};
 
       // If the client did not provide geolocation data, get it from the IP address.
       if (!input.latitude || !input.longitude) {
-        await fetch(`http://ip-api.com/json/${input.ip}`).then(async (res) => {
-          const data = (await res.json()) as { lat: number; lon: number };
-          const { lat, lon } = data;
+        try {
+          const data = await fetch(`http://ip-api.com/json/${input.ip}`).then(
+            async (res) => {
+              return (await res.json()) as {
+                city: string;
+                lat: number;
+                lon: number;
+              };
+            },
+          );
 
-          // Get the city.
-          const city = await getCityFromGeolocation(lat, lon);
+          const { city, lat, lon } = data;
 
           // Generate a unique ID.
-          id = `${city}-${date}-${time}-${uniqueID}`;
+          filename = `${city}-${date}-${time}`;
+          const id = `${filename}-${nanoid()}`;
 
           // Save the document to Cloudant.
           response = await cloudant.postDocument({
             db: "jamaisvu-recordings",
             document: {
               _id: id,
-              filename: `${id}.wav`,
+              filename: `${filename}.wav`,
               location: {
                 city: city,
                 latitude: lat,
@@ -143,7 +148,12 @@ export const ibmRouter = createTRPCRouter({
               timestamp: dateObject.getTime(),
             },
           });
-        });
+        } catch (error) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Invalid IP address.",
+          });
+        }
       } else {
         // Get the city.
         const city = await getCityFromGeolocation(
@@ -152,14 +162,15 @@ export const ibmRouter = createTRPCRouter({
         );
 
         // Generate a unique ID.
-        id = `${city}-${date}-${time}-${uniqueID}`;
+        filename = `${city}-${date}-${time}`;
+        const id = `${filename}-${nanoid()}`;
 
         // Save the document to Cloudant.
         response = await cloudant.postDocument({
           db: "jamaisvu-recordings",
           document: {
             _id: id,
-            filename: `${id}.wav`,
+            filename: `${filename}.wav`,
             location: {
               city: city,
               latitude: input.latitude,
@@ -174,7 +185,7 @@ export const ibmRouter = createTRPCRouter({
       // Set the parameters for the S3 bucket.
       const params = {
         Bucket: "recordings",
-        Key: `${id}.wav`,
+        Key: `${filename}.wav`,
         Body: buffer,
       };
 
