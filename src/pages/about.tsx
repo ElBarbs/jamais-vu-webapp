@@ -31,12 +31,6 @@ export default function About() {
               Terms and Conditions
             </p>
             <p className="text-justify text-sm">
-              Jamais Vu is a project created by students from Concordia
-              University for the course CART 461: Tangible Media Studio. This
-              project is not affiliated with the university or any external
-              organizations.
-            </p>
-            <p className="text-justify text-sm">
               By using this website and uploading an audio recording, you agree
               to share your geolocation data with us. Your information will not
               be shared with any third parties and will only be used to serve
