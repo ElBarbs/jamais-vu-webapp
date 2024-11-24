@@ -58,6 +58,25 @@ export const ibmRouter = createTRPCRouter({
       }
     }
   }),
+  getRecording: publicProcedure.input(z.string()).query(async ({ input }) => {
+    const audioFile = await cos
+      .getObject({
+        Bucket: "recordings",
+        Key: `${input}`,
+      })
+      .promise();
+
+    const body = audioFile.Body?.toString("base64");
+
+    if (audioFile) {
+      return body;
+    } else {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "Failed to retrieve audio file.",
+      });
+    }
+  }),
   getLocationData: publicProcedure.query(async () => {
     const documents = await cloudant.postAllDocs({
       db: "jamaisvu-recordings",
@@ -69,6 +88,8 @@ export const ibmRouter = createTRPCRouter({
       .map((doc) => ({
         latitude: doc.location.latitude,
         longitude: doc.location.longitude,
+        timestamp: doc.timestamp,
+        filename: doc.filename,
       }));
 
     const resp: FeatureCollection<Geometry, GeoJsonProperties> = {
@@ -79,7 +100,10 @@ export const ibmRouter = createTRPCRouter({
           type: "Point",
           coordinates: [item.longitude, item.latitude],
         },
-        properties: {},
+        properties: {
+          filename: item.filename,
+          date: `${new Date(item.timestamp).toLocaleString()}`,
+        },
       })),
     };
 
@@ -111,7 +135,7 @@ export const ibmRouter = createTRPCRouter({
       // Time in format HH:MM:SS
       const time = dateObject.toTimeString().split(" ")[0];
 
-      let filename = "";
+      let id = "";
       let response = {};
 
       // If the client did not provide geolocation data, get it from the IP address.
@@ -130,15 +154,14 @@ export const ibmRouter = createTRPCRouter({
           const { city, lat, lon } = data;
 
           // Generate a unique ID.
-          filename = `${city}-${date}-${time}`;
-          const id = `${filename}-${nanoid()}`;
+          id = `${city}-${date}-${time}-${nanoid()}`;
 
           // Save the document to Cloudant.
           response = await cloudant.postDocument({
             db: "jamaisvu-recordings",
             document: {
               _id: id,
-              filename: `${filename}.wav`,
+              filename: `${id}.wav`,
               location: {
                 city: city,
                 latitude: lat,
@@ -163,15 +186,14 @@ export const ibmRouter = createTRPCRouter({
         );
 
         // Generate a unique ID.
-        filename = `${city}-${date}-${time}`;
-        const id = `${filename}-${nanoid()}`;
+        id = `${city}-${date}-${time}-${nanoid()}`;
 
         // Save the document to Cloudant.
         response = await cloudant.postDocument({
           db: "jamaisvu-recordings",
           document: {
             _id: id,
-            filename: `${filename}.wav`,
+            filename: `${id}.wav`,
             location: {
               city: city,
               latitude: input.latitude,
@@ -186,7 +208,7 @@ export const ibmRouter = createTRPCRouter({
       // Set the parameters for the S3 bucket.
       const params = {
         Bucket: "recordings",
-        Key: `${filename}.wav`,
+        Key: `${id}.wav`,
         Body: buffer,
       };
 

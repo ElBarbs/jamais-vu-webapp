@@ -4,9 +4,14 @@ import WaveSurfer from "wavesurfer.js";
 interface WaveformProps {
   url: string;
   playing?: boolean;
+  height?: number | "auto";
 }
 
-export default function Waveform({ url, playing = false }: WaveformProps) {
+export default function Waveform({
+  url,
+  playing = false,
+  height = "auto",
+}: WaveformProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const wavesurferRef = useRef<WaveSurfer | null>(null);
 
@@ -16,6 +21,7 @@ export default function Waveform({ url, playing = false }: WaveformProps) {
         container: containerRef.current,
         barWidth: 2,
         sampleRate: 48000,
+        height: height,
       });
 
       wavesurferRef.current.on("finish", () => {
@@ -28,7 +34,7 @@ export default function Waveform({ url, playing = false }: WaveformProps) {
     if (wavesurferRef.current && url) {
       void wavesurferRef.current.load(url);
     }
-  }, [url]);
+  }, [url, height]);
 
   useEffect(() => {
     if (wavesurferRef.current) {
@@ -40,5 +46,5 @@ export default function Waveform({ url, playing = false }: WaveformProps) {
     }
   }, [playing]);
 
-  return <div ref={containerRef} className="w-full"></div>;
+  return <div ref={containerRef} className="w-full hover:cursor-pointer"></div>;
 }
