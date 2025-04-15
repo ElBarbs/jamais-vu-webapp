@@ -29,6 +29,13 @@ const cosConfig = {
 
 const cos = new S3(cosConfig);
 
+const cleanString = (str: string) => {
+  return str
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, "");
+};
+
 export const ibmRouter = createTRPCRouter({
   getRandomRecording: publicProcedure.query(async () => {
     const documents = await cloudant.postAllDocs({
@@ -135,7 +142,8 @@ export const ibmRouter = createTRPCRouter({
       // Time in format HH:MM:SS
       const time = dateObject.toTimeString().split(" ")[0];
 
-      let id = "";
+      let s3FullName = "";
+      let filename = `${time}-${nanoid(6)}`;
       let response = {};
 
       // If the client did not provide geolocation data, get it from the IP address.
@@ -153,15 +161,15 @@ export const ibmRouter = createTRPCRouter({
 
           const { city, lat, lon } = data;
 
-          // Generate a unique ID.
-          id = `${city}-${date}-${time}-${nanoid()}`;
+          // Set full name for S3 bucket.
+          s3FullName = `${cleanString(city)}/${date}/${filename}`;
 
           // Save the document to Cloudant.
           response = await cloudant.postDocument({
             db: "jamaisvu-recordings",
             document: {
-              _id: id,
-              filename: `${id}.wav`,
+              _id: filename,
+              filename: `${filename}.wav`,
               location: {
                 city: city,
                 latitude: lat,
@@ -185,15 +193,15 @@ export const ibmRouter = createTRPCRouter({
           input.longitude,
         );
 
-        // Generate a unique ID.
-        id = `${city}-${date}-${time}-${nanoid()}`;
+        // Set full name for S3 bucket.
+        s3FullName = `${cleanString(city)}/${date}/${filename}`;
 
         // Save the document to Cloudant.
         response = await cloudant.postDocument({
           db: "jamaisvu-recordings",
           document: {
-            _id: id,
-            filename: `${id}.wav`,
+            _id: filename,
+            filename: `${filename}.wav`,
             location: {
               city: city,
               latitude: input.latitude,
@@ -208,7 +216,7 @@ export const ibmRouter = createTRPCRouter({
       // Set the parameters for the S3 bucket.
       const params = {
         Bucket: "recordings",
-        Key: `${id}.wav`,
+        Key: `${s3FullName}.wav`,
         Body: buffer,
       };
 

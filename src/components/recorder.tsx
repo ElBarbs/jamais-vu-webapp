@@ -22,6 +22,8 @@ export default function Recorder() {
   );
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const countdownIntervalRef = useRef<number | undefined>(undefined);
 
   const uploadRecording = api.ibm.uploadRecording.useMutation({
@@ -110,6 +112,53 @@ export default function Recorder() {
     clearInterval(countdownIntervalRef.current);
   };
 
+  // Helper function to create and set up balanced audio processing pipeline.
+  const setupAudioProcessing = async (stream: MediaStream) => {
+    // Create an audio context with a standard sample rate.
+    const audioContext = new AudioContext({ sampleRate: 44100 });
+    // Store reference if needed: audioContextRef.current = audioContext;
+
+    // Create a source node from the microphone stream.
+    const sourceNode = audioContext.createMediaStreamSource(stream);
+
+    // High-pass filter:
+    // Lower cutoff (e.g., 40Hz) allows more of the natural low-frequency ambience
+    // while reducing very low rumble that may be unwanted.
+    const highPassFilter = audioContext.createBiquadFilter();
+    highPassFilter.type = "highpass";
+    highPassFilter.frequency.value = 40; // Adjust as needed for your environment
+
+    // Note: For ambient recordings, you may want to capture as much of the spectrum as possible.
+    // Therefore, we omit a low-pass filter here to preserve high-frequency details.
+
+    // Compressor:
+    // Use a gentle ratio (2:1) with a soft knee to lightly tame peaks without squashing the natural dynamics.
+    // Slower attack and release settings help maintain the ambience without introducing artifacts.
+    const compressor = audioContext.createDynamicsCompressor();
+    compressor.threshold.value = -35; // Begins compressing when peaks exceed this level
+    compressor.knee.value = 10; // Soft knee for a smoother transition into compression
+    compressor.ratio.value = 2; // Gentle compression ratio for natural dynamics
+    compressor.attack.value = 0.1; // 100ms attack time to allow transient detail
+    compressor.release.value = 0.3; // 300ms release time for a smooth recovery
+
+    // Final gain adjustment:
+    // Set to unity gain (1.0) as a starting point; tweak if the overall level needs further adjustment.
+    const gainNode = audioContext.createGain();
+    gainNode.gain.value = 1.2;
+
+    // Connect the nodes in sequence:
+    // Source -> High-Pass Filter -> Compressor -> Gain -> MediaStreamDestination
+    sourceNode.connect(highPassFilter);
+    highPassFilter.connect(compressor);
+    compressor.connect(gainNode);
+
+    // Create a MediaStream from the processed audio.
+    const destination = audioContext.createMediaStreamDestination();
+    gainNode.connect(destination);
+
+    return destination.stream;
+  };
+
   const startRecording = async () => {
     if (isUploading) return;
 
@@ -145,8 +194,13 @@ export default function Recorder() {
     let stream: MediaStream;
     try {
       stream = await navigator.mediaDevices.getUserMedia({
-        audio: true,
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: false, // Turn off browser's auto gain control
+        },
       });
+      streamRef.current = stream;
     } catch (err) {
       if (err instanceof Error && err.name === "NotAllowedError") {
         setErrorMessage("Please enable microphone access to start recording.");
@@ -154,8 +208,13 @@ export default function Recorder() {
       return;
     }
 
-    // Initialize the recorder.
-    const recorder = new MediaRecorder(stream, { mimeType: "audio/wav" });
+    // Process the audio stream to maintain consistent volume
+    const processedStream = await setupAudioProcessing(stream);
+
+    // Initialize the recorder with the processed stream
+    const recorder = new MediaRecorder(processedStream, {
+      mimeType: "audio/wav",
+    });
     mediaRecorderRef.current = recorder as MediaRecorder;
 
     // Reset recording state.
@@ -171,7 +230,19 @@ export default function Recorder() {
       setAudioBlob(blob);
       const url = URL.createObjectURL(blob);
       setAudioURL(url);
-      stream.getTracks().forEach((track) => track.stop());
+
+      // Clean up audio context
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
+        audioContextRef.current = null;
+      }
+
+      // Stop all tracks in the original stream
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+        streamRef.current = null;
+      }
+
       setIsRecording(false);
     };
 
