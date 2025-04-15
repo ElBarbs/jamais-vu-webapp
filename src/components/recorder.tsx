@@ -114,60 +114,49 @@ export default function Recorder() {
 
   // Helper function to create and set up balanced audio processing pipeline.
   const setupAudioProcessing = async (stream: MediaStream) => {
-    // Create audio context
-    const audioContext = new AudioContext({
-      sampleRate: 44100,
-    });
-    audioContextRef.current = audioContext;
+    // Create an audio context with a standard sample rate.
+    const audioContext = new AudioContext({ sampleRate: 44100 });
+    // Store reference if needed: audioContextRef.current = audioContext;
 
-    // Create source node from the microphone stream
+    // Create a source node from the microphone stream.
     const sourceNode = audioContext.createMediaStreamSource(stream);
 
-    // Create a gain node for initial volume adjustment - reduced from previous version
-    const preGain = audioContext.createGain();
-    preGain.gain.value = 1.0; // No initial boost, just maintain original volume
+    // High-pass filter:
+    // Lower cutoff (e.g., 40Hz) allows more of the natural low-frequency ambience
+    // while reducing very low rumble that may be unwanted.
+    const highPassFilter = audioContext.createBiquadFilter();
+    highPassFilter.type = "highpass";
+    highPassFilter.frequency.value = 40; // Adjust as needed for your environment
 
-    // First compressor to handle loud transients like car sounds
-    const transientCompressor = audioContext.createDynamicsCompressor();
-    transientCompressor.threshold.value = -25; // Higher threshold than before
-    transientCompressor.knee.value = 10; // Smoother knee
-    transientCompressor.ratio.value = 8; // Less aggressive ratio
-    transientCompressor.attack.value = 0.003; // Still fast but not as extreme
-    transientCompressor.release.value = 0.15; // Slightly slower release
+    // Note: For ambient recordings, you may want to capture as much of the spectrum as possible.
+    // Therefore, we omit a low-pass filter here to preserve high-frequency details.
 
-    // Second compressor for evening out the overall sound level
-    const levelingCompressor = audioContext.createDynamicsCompressor();
-    levelingCompressor.threshold.value = -40; // Higher threshold for less compression
-    levelingCompressor.knee.value = 15; // Soft knee for smoother compression
-    levelingCompressor.ratio.value = 3; // Lower ratio for gentler effect
-    levelingCompressor.attack.value = 0.05; // Slower attack
-    levelingCompressor.release.value = 0.3; // Standard release
+    // Compressor:
+    // Use a gentle ratio (2:1) with a soft knee to lightly tame peaks without squashing the natural dynamics.
+    // Slower attack and release settings help maintain the ambience without introducing artifacts.
+    const compressor = audioContext.createDynamicsCompressor();
+    compressor.threshold.value = -35; // Begins compressing when peaks exceed this level
+    compressor.knee.value = 10; // Soft knee for a smoother transition into compression
+    compressor.ratio.value = 2; // Gentle compression ratio for natural dynamics
+    compressor.attack.value = 0.1; // 100ms attack time to allow transient detail
+    compressor.release.value = 0.3; // 300ms release time for a smooth recovery
 
-    // Final gain adjustment - significantly reduced from previous version
-    const postGain = audioContext.createGain();
-    postGain.gain.value = 0.8; // Slightly reduce the final volume
+    // Final gain adjustment:
+    // Set to unity gain (1.0) as a starting point; tweak if the overall level needs further adjustment.
+    const gainNode = audioContext.createGain();
+    gainNode.gain.value = 1.0;
 
-    // Add a limiter as the final stage to prevent any clipping
-    const limiter = audioContext.createDynamicsCompressor();
-    limiter.threshold.value = -2; // Only limit very loud peaks
-    limiter.knee.value = 0; // Hard knee for true limiting
-    limiter.ratio.value = 20; // Very high ratio for brick wall limiting
-    limiter.attack.value = 0.001; // Instant attack
-    limiter.release.value = 0.1; // Quick release
+    // Connect the nodes in sequence:
+    // Source -> High-Pass Filter -> Compressor -> Gain -> MediaStreamDestination
+    sourceNode.connect(highPassFilter);
+    highPassFilter.connect(compressor);
+    compressor.connect(gainNode);
 
-    // Connect the nodes:
-    // source -> preGain -> transientCompressor -> levelingCompressor -> postGain -> limiter -> destination
-    sourceNode.connect(preGain);
-    preGain.connect(transientCompressor);
-    transientCompressor.connect(levelingCompressor);
-    levelingCompressor.connect(postGain);
-    postGain.connect(limiter);
+    // Create a MediaStream from the processed audio.
+    const destination = audioContext.createMediaStreamDestination();
+    gainNode.connect(destination);
 
-    // Create a new MediaStream from the processed audio
-    const destinationStream = audioContext.createMediaStreamDestination();
-    limiter.connect(destinationStream);
-
-    return destinationStream.stream;
+    return destination.stream;
   };
 
   const startRecording = async () => {
@@ -208,7 +197,8 @@ export default function Recorder() {
         audio: {
           echoCancellation: true,
           noiseSuppression: true,
-          autoGainControl: false, // Turn off browser's auto gain control
+          autoGainControl: true,
+          sampleRate: 44100,
         },
       });
       streamRef.current = stream;
