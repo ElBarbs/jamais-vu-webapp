@@ -233,7 +233,7 @@ export default function Recorder() {
 
       // Clean up audio context
       if (audioContextRef.current) {
-        audioContextRef.current.close();
+        void audioContextRef.current.close();
         audioContextRef.current = null;
       }
 

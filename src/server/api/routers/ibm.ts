@@ -142,8 +142,9 @@ export const ibmRouter = createTRPCRouter({
       // Time in format HH:MM:SS
       const time = dateObject.toTimeString().split(" ")[0];
 
+      const filename = `${time}-${nanoid(6)}`;
+
       let s3FullName = "";
-      let filename = `${time}-${nanoid(6)}`;
       let response = {};
 
       // If the client did not provide geolocation data, get it from the IP address.
